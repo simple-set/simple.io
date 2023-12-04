@@ -1,0 +1,115 @@
+package event
+
+import (
+	"bytes"
+	"github.com/golang/mock/gomock"
+	"github.com/simple-set/simple.io/src/collect"
+	mock_net "github.com/simple-set/simple.io/src/mocks/net"
+	"github.com/simple-set/simple.io/src/socket"
+	"github.com/sirupsen/logrus"
+	"net"
+	"reflect"
+	"testing"
+)
+
+func init() {
+	logrus.SetLevel(logrus.TraceLevel)
+}
+
+func TestSession_Id(t *testing.T) {
+	session := newSession()
+	if session.id != session.Id() {
+		t.Fatalf("session.Id() error, %s", session.id)
+	}
+}
+
+func TestSession_InputContext(t *testing.T) {
+	session := newSession()
+	context := session.InputContext()
+	if context.direction != inbound || context.Session() != session {
+		t.Fatal("session.inbound()")
+	}
+}
+
+func TestSession_OutputContext(t *testing.T) {
+	session := newSession()
+	context := session.OutputContext()
+	if context.direction != outbound || context.Session() != session {
+		t.Fatal("session.OutputContext()")
+	}
+}
+
+func TestSession_Close(t *testing.T) {
+	mockConn := mock_net.NewMockConn(gomock.NewController(t))
+	mockConn.EXPECT().Close().Return(nil).Times(1)
+	mockConn.EXPECT().RemoteAddr().Return(&net.IPAddr{}).Times(1)
+	newSocket := socket.NewSocket(mockConn, nil, nil)
+
+	session := newSession()
+	session.sock = newSocket
+	err := session.Close()
+	if err != nil || session.state != Disconnect {
+		t.Fatal("session.Close()")
+	}
+}
+
+func TestSession_Write(t *testing.T) {
+	session := newSession()
+	session.pipeLine = NewPipeLine(nil)
+	session.sock = socket.NewSocket(nil, nil, nil)
+	session.Write("data")
+
+	value := reflect.ValueOf(session.sock).Elem().FieldByName("writeBuf").Bytes()
+	if !bytes.EqualFold(value, []byte("data")) {
+		t.Fatal("session.Write()")
+	}
+}
+
+func TestSession_Flush(t *testing.T) {
+	data := []byte("data")
+	mockConn := mock_net.NewMockConn(gomock.NewController(t))
+	mockConn.EXPECT().Write(gomock.Any()).Return(len(data)/2, nil).Times(1)
+	mockConn.EXPECT().Write(gomock.Any()).Return(len(data)/2, nil).Times(1)
+
+	session := newSession()
+	session.sock = socket.NewSocket(mockConn, nil, nil)
+	session.pipeLine = NewPipeLine(nil)
+	session.Write(data)
+	session.Flush()
+}
+
+func TestSession_submitInput(t *testing.T) {
+	handlers := collect.NewLinkedNode[any]()
+	handler := &testHandle{state: true, result: "data"}
+	handlers.Add(handler)
+	handlers.Add(handler)
+	pipeLine := NewPipeLine(handlers)
+
+	session := ClientSession(nil, nil, pipeLine)
+	session.state = Active
+	context := session.InputContext()
+	context.exchangeBuff = "data"
+	session.submitInput(context)
+
+	if handler.n != 2 || context.exchangeBuff != nil {
+		t.Fatal("session.submitOutput()")
+	}
+}
+
+func TestSession_submitOutput(t *testing.T) {
+	handlers := collect.NewLinkedNode[any]()
+	handler := &testHandle{state: true, result: "data"}
+	handlers.Add(handler)
+	handlers.Add(handler)
+	pipeLine := NewPipeLine(handlers)
+
+	session := ClientSession(nil, nil, pipeLine)
+	session.state = Disconnect
+	context := session.InputContext()
+	context.exchangeBuff = "data"
+	session.submitOutput(context)
+
+	if handler.n != 2 || context.exchangeBuff != nil {
+		t.Fatal("session.submitOutput()")
+	}
+}
