@@ -15,7 +15,7 @@ type HandleContext struct {
 	// 会话对象
 	session *Session
 	// 交换缓冲区, handle之间传递数据
-	exchangeBuff interface{}
+	exchange interface{}
 }
 
 func (h HandleContext) Direction() Direction {

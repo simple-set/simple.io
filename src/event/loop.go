@@ -57,13 +57,13 @@ func (p *Loop) pool(session *Session) {
 	for {
 		if reader, err := session.sock.Read(); err == nil {
 			context := session.InputContext()
-			context.exchangeBuff = reader
+			context.exchange = reader
 			session.submitInput(context)
 		} else {
 			logrus.Debugln("Exception reading data from socket", err)
 			_ = session.Close()
 			context := session.InputContext()
-			context.exchangeBuff = nil
+			context.exchange = nil
 			session.submitInput(context)
 			return
 		}

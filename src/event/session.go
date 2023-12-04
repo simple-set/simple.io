@@ -124,7 +124,7 @@ func (p *Session) Close() error {
 }
 
 func (p *Session) Write(data any) {
-	p.OutputContext().exchangeBuff = data
+	p.OutputContext().exchange = data
 	result := p.submitOutput(p.outputContext)
 
 	if result == nil {
@@ -163,7 +163,7 @@ func (p *Session) submitInput(context *HandleContext) {
 		return
 	}
 	defer func() {
-		context.exchangeBuff = nil
+		context.exchange = nil
 	}()
 
 	p.pipeLine.inbound(context)
@@ -179,7 +179,7 @@ func (p *Session) submitOutput(context *HandleContext) any {
 	}
 	defer func() {
 		p.outputStack = -1
-		context.exchangeBuff = nil
+		context.exchange = nil
 	}()
 
 	p.outputStack += 1

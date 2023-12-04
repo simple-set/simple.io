@@ -1,22 +1,21 @@
 package handle
 
 import (
+	"bufio"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
 )
 
 type StringDecoder struct{}
 
-func NewStringDecoder() *StringDecoder {
-	return &StringDecoder{}
+func (s *StringDecoder) Input(_ *event.HandleContext, reader bufio.Reader) (string, bool) {
+	bytes := make([]byte, reader.Size())
+	if _, err := reader.Read(bytes); err != nil {
+		logrus.Errorln("Exception reading data from buffer", err)
+	}
+	return string(bytes), false
 }
 
-func (s *StringDecoder) Input(_ *event.HandleContext, data interface{}) (interface{}, bool) {
-	if value, ok := data.([]byte); ok {
-		return string(value), true
-	} else if value, ok := data.(string); ok {
-		return value, true
-	}
-	logrus.Warnf("Convert to Replace String")
-	return nil, false
+func NewStringDecoder() *StringDecoder {
+	return &StringDecoder{}
 }

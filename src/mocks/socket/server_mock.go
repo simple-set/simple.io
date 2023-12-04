@@ -5,8 +5,9 @@
 package mock_socket
 
 import (
+	"github.com/simple-set/simple.io/src/socket"
 	reflect "reflect"
-	socket "simple-io/src/socket"
+	//socket "simple-io/src/socket"
 
 	gomock "github.com/golang/mock/gomock"
 )

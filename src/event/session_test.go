@@ -88,10 +88,10 @@ func TestSession_submitInput(t *testing.T) {
 	session := ClientSession(nil, nil, pipeLine)
 	session.state = Active
 	context := session.InputContext()
-	context.exchangeBuff = "data"
+	context.exchange = "data"
 	session.submitInput(context)
 
-	if handler.n != 2 || context.exchangeBuff != nil {
+	if handler.n != 2 || context.exchange != nil {
 		t.Fatal("session.submitOutput()")
 	}
 }
@@ -106,10 +106,10 @@ func TestSession_submitOutput(t *testing.T) {
 	session := ClientSession(nil, nil, pipeLine)
 	session.state = Disconnect
 	context := session.InputContext()
-	context.exchangeBuff = "data"
+	context.exchange = "data"
 	session.submitOutput(context)
 
-	if handler.n != 2 || context.exchangeBuff != nil {
+	if handler.n != 2 || context.exchange != nil {
 		t.Fatal("session.submitOutput()")
 	}
 }
