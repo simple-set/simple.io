@@ -1,17 +1,16 @@
 package event
 
 import (
-	"github.com/simple-set/simple.io/src/collect"
 	"github.com/simple-set/simple.io/src/socket"
 	"github.com/sirupsen/logrus"
 )
 
 type Loop struct {
-	handlers *collect.LinkedNode[any]
+	pipeLine *PipeLine
 }
 
-func NewEventLoop(handles *collect.LinkedNode[any]) *Loop {
-	return &Loop{handlers: handles}
+func NewEventLoop(pipeLine *PipeLine) *Loop {
+	return &Loop{pipeLine: pipeLine}
 }
 
 func (p *Loop) Connect(client socket.Client) *Session {
@@ -20,7 +19,7 @@ func (p *Loop) Connect(client socket.Client) *Session {
 		logrus.Errorln(err)
 		return nil
 	}
-	clientSession := ClientSession(sock, client, NewPipeLine(p.handlers))
+	clientSession := ClientSession(sock, client, p.pipeLine)
 	logrus.Debugf("Create a new clientSession, Id: %s, addr: %s", clientSession.Id(), sock.RemoteAddr())
 	clientSession.submitInput(clientSession.InputContext())
 	clientSession.state = Active
@@ -38,7 +37,7 @@ func (p *Loop) accept(listenSession *Session) {
 	for {
 		if sock, err := listenSession.server.Accept(); err == nil {
 			go func(sock *socket.Socket) {
-				serverSession := ServerSession(sock, listenSession.server, NewPipeLine(p.handlers))
+				serverSession := ServerSession(sock, listenSession.server, p.pipeLine)
 				logrus.Debugf("Create a new serverSession, Id: %s, addr: %s", serverSession.Id(), sock.RemoteAddr())
 
 				serverSession.submitInput(serverSession.InputContext())

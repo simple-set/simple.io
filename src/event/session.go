@@ -131,12 +131,18 @@ func (p *Session) Write(data any) {
 		return
 	}
 	if value, ok := result.(string); ok {
-		p.sock.WriteString(value)
+		if _, err := p.sock.WriteString(value); err != nil {
+			_ = p.Close()
+			return
+		}
 		p.Flush()
 		return
 	}
 	if value, ok := result.([]byte); ok {
-		p.sock.Write(value)
+		if _, err := p.sock.Write(value); err != nil {
+			_ = p.Close()
+			return
+		}
 		p.Flush()
 		return
 	}

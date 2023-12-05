@@ -1,78 +1,86 @@
 package event
 
 import (
+	"errors"
 	"github.com/simple-set/simple.io/src/collect"
 	"github.com/sirupsen/logrus"
 	"reflect"
 )
 
 // 处理的包装类型
+// 使用包装器的主要原因是泛化处理器, 由于go的泛型无法断言(像java一样多好啊), 包装器维护反射对象调用处理器
 type handlerWrap struct {
-	name          string // 处理器名称
-	isActivate    bool   // 是否支持Activate
-	isDisconnect  bool   // 是否支持Disconnect
-	isInput       bool   // 是否支持input
-	isOutput      bool   // 是否支持output
-	inputArgType  any    // 输入参数类型
-	outputArgType any    // 输出参数类型
+	name             string
+	activateMethod   *reflect.Value
+	disconnectMethod *reflect.Value
+	inputMethod      *reflect.Value
+	outputMethod     *reflect.Value
 }
 
-func parseArgs(handler any, funcName string) any {
-	method, ok := reflect.TypeOf(handler).MethodByName(funcName)
-	if ok {
-		return method.Type.In(2)
+// 验证处理
+func verifyHandler(value reflect.Value, num int) (*reflect.Value, error) {
+	if value.Kind() != reflect.Func {
+		return nil, errors.New("invalid number of arguments")
 	}
-	return nil
+
+	if value.Type().NumIn() != num || value.Type().NumOut() != num {
+		return nil, errors.New("invalid number of arguments")
+	}
+
+	if value.Type().In(0).Elem().Name() != "HandleContext" {
+		return nil, errors.New("invalid number of arguments")
+	}
+
+	numOut := value.Type().NumOut()
+	if value.Type().Out(numOut-1).Kind() != reflect.Bool {
+		return nil, errors.New("invalid number of arguments")
+	}
+
+	return &value, nil
 }
 
-// 生成包装对象
-func createHandlerWrap(handler any) *handlerWrap {
+// 创建处理器的包装对象
+func createHandlerWrap(handler any) (*handlerWrap, error) {
+	typeValue := reflect.ValueOf(handler)
 	warp := new(handlerWrap)
-	warp.name = reflect.TypeOf(handler).String()
+	warp.name = typeValue.Elem().Type().String()
 
-	if _, ok := handler.(ActivateHandle[any]); ok {
-		warp.isActivate = true
+	if method, err := verifyHandler(typeValue.MethodByName("Activate"), 1); err == nil {
+		warp.activateMethod = method
 	}
-
-	if _, ok := handler.(DisconnectHandle[any]); ok {
-		warp.isDisconnect = true
+	if method, err := verifyHandler(typeValue.MethodByName("Disconnect"), 1); err == nil {
+		warp.disconnectMethod = method
 	}
-
-	if value, ok := handler.(InputHandle[any, any]); ok {
-		warp.isInput = true
-		warp.inputArgType = parseArgs(value, "Input")
+	if method, err := verifyHandler(typeValue.MethodByName("Input"), 2); err == nil {
+		warp.inputMethod = method
 	}
-
-	if _, ok := handler.(OutputHandle[any, any]); ok {
-		warp.isOutput = true
-		//typeValue := reflect.TypeOf(value)
-		//nameFunc, _ := typeValue.FieldByNameFunc(func(string) bool { return true })
-		//warp.inputArgType = parseArgs(nameFunc)
+	if method, err := verifyHandler(typeValue.MethodByName("Output"), 2); err == nil {
+		warp.outputMethod = method
 	}
-	return warp
+	if warp.inputMethod == nil && warp.outputMethod == nil && warp.activateMethod == nil && warp.disconnectMethod == nil {
+		return nil, errors.New("the handler must have one of the Activate, Disconnect, Input, or Output methods")
+	}
+	return warp, nil
 }
 
 type PipeLine struct {
-	handlers  *collect.LinkedNode[any]
-	handlerss *collect.LinkedNode[handlerWrap]
-	//handlerInfos map[any][]*handlerInfo
+	handlers *collect.LinkedNode[*handlerWrap]
 }
 
-func (p *PipeLine) AddHandler(handler any) {
-	if !IsHandler(handler) {
-		logrus.Errorln("Wrong type, only handler can be added")
+func (p *PipeLine) AddHandler(handler any) (err error) {
+	wrap, err := createHandlerWrap(handler)
+	if err == nil {
+		p.handlers.Add(wrap)
 	}
-	p.handlers.Add(handler)
+	return
 }
 
-func (p *PipeLine) InsertHandler(index int, handler any) {
-	if !IsHandler(handler) {
-		logrus.Errorln("Wrong type, only handler can be added")
+func (p *PipeLine) InsertHandler(index int, handler any) (err error) {
+	wrap, err := createHandlerWrap(handler)
+	if err == nil {
+		_ = p.handlers.Insert(index, wrap)
 	}
-	err := p.handlers.Insert(index, handler)
-	if err != nil {
-		logrus.Errorln(err)
-	}
+	return
 }
 
 func (p *PipeLine) inbound(context *HandleContext) (interface{}, bool) {
@@ -115,41 +123,43 @@ func (p *PipeLine) outbound(context *HandleContext) (interface{}, bool) {
 	}
 }
 
-func (p *PipeLine) execute(handler any, context *HandleContext, exchange any) (any, bool) {
-	//defer func() {
-	//	// 处理器执行异常
-	//	if err := recover(); err != nil {
-	//		logrus.Errorln("Exception in executing handler", reflect.TypeOf(handler).String(), err)
-	//	}
-	//}()
-	//
-	//if currentHandle, ok := handler.(ActivateHandle[any]); context.session.state == Accept && ok {
-	//	logrus.Debugln("Execute the Activate method of the", reflect.TypeOf(handler).String())
-	//	return currentHandle.Activate(context)
-	//}
-	//
-	//if handler, ok := handler.(DisconnectHandle[any]); context.session.state == Disconnect && ok {
-	//	logrus.Debugln("Execute the Disconnect method of the", reflect.TypeOf(handler).String())
-	//	return handler.Disconnect(context)
-	//}
-	//
-	//if context.session.state == Active {
-	//	if handler, ok := handler.(InputHandle[any, string]); context.direction == inbound && ok {
-	//		logrus.Debugln("Execute the inbound method of the", reflect.TypeOf(handler).String())
-	//		return handler.Input(context, exchange)
-	//	}
-	//	if handler, ok := handler.(OutputHandle); context.direction == outbound && ok {
-	//		logrus.Debugln("Execute the outbound method of the", reflect.TypeOf(handler).String())
-	//		return handler.Output(context, exchange)
-	//	}
-	//}
-	return exchange, true
+func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange any) (result any, state bool) {
+	result = exchange
+	state = true
+
+	defer func() {
+		// 处理器执行预期外异常
+		if err := recover(); err != nil {
+			logrus.Panicln("Exception in executing handler", wrap.name, err)
+		}
+	}()
+
+	if context.session.state == Accept && wrap.activateMethod != nil {
+		value := wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context)})
+		state = value[0].Bool()
+		return
+	}
+	if context.session.state == Disconnect && wrap.disconnectMethod != nil {
+		value := wrap.disconnectMethod.Call([]reflect.Value{reflect.ValueOf(context)})
+		state = value[0].Bool()
+		return
+	}
+
+	if context.session.state == Active {
+		var values []reflect.Value
+		if context.direction == inbound {
+			values = wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
+		} else if context.direction == outbound {
+			values = wrap.outputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
+		}
+		if values != nil {
+			result = values[0].Interface()
+			state = values[1].Bool()
+		}
+	}
+	return
 }
 
-func (p *PipeLine) doExecute() (any, bool) {
-	return nil, true
-}
-
-func NewPipeLine(handlers *collect.LinkedNode[any]) *PipeLine {
-	return &PipeLine{handlers: handlers}
+func NewPipeLine() *PipeLine {
+	return &PipeLine{handlers: collect.NewLinkedNode[*handlerWrap]()}
 }

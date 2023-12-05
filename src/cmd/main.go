@@ -12,6 +12,7 @@ func server() {
 		TcpServer(":8000").
 		AddHandler(handle.NewStringDecoder()).
 		AddHandler(handle.NewPrintHandler()).
+		AddHandler(handle.NewEchoHandler()).
 		Bind().Wait()
 }
 
