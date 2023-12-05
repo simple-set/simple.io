@@ -130,12 +130,12 @@ func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange a
 	defer func() {
 		// 处理器执行预期外异常
 		if err := recover(); err != nil {
-			logrus.Panicln("Exception in executing handler", wrap.name, err)
+			logrus.Panicln("Exception in executing handler", wrap.name, exchange, err)
 		}
 	}()
 
 	if context.session.state == Accept && wrap.activateMethod != nil {
-		value := wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context)})
+		value := wrap.activateMethod.Call([]reflect.Value{reflect.ValueOf(context)})
 		state = value[0].Bool()
 		return
 	}
@@ -146,15 +146,16 @@ func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange a
 	}
 
 	if context.session.state == Active {
-		var values []reflect.Value
-		if context.direction == inbound {
-			values = wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
-		} else if context.direction == outbound {
-			values = wrap.outputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
+		var results []reflect.Value
+		if context.direction == inbound && wrap.inputMethod != nil {
+			results = wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
+		} else if context.direction == outbound && wrap.outputMethod != nil {
+			results = wrap.outputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})
 		}
-		if values != nil {
-			result = values[0].Interface()
-			state = values[1].Bool()
+
+		if results != nil {
+			result = results[0].Interface()
+			state = results[1].Bool()
 		}
 	}
 	return

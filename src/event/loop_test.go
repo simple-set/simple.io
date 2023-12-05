@@ -17,19 +17,15 @@ func init() {
 }
 
 func TestLoop_Connect(t *testing.T) {
-	mockCtl := gomock.NewController(t)
-	defer mockCtl.Finish()
-
 	// mocks conn
-	mockConn := mockNet.NewMockConn(mockCtl)
+	mockConn := mockNet.NewMockConn(gomock.NewController(t))
 	mockConn.EXPECT().RemoteAddr().Return(&net.TCPAddr{}).AnyTimes()
 	mockConn.EXPECT().Close().Times(1)
-	mockConn.EXPECT().Read(gomock.Any()).Return(1, nil).Times(1)
 	mockConn.EXPECT().Read(gomock.Any()).Return(0, errors.New("close")).Times(1)
 	// mock socket
 	mockSock := socket.NewSocket(mockConn, nil, nil)
 	// mock client
-	mockClient := mockSocket.NewMockClient(mockCtl)
+	mockClient := mockSocket.NewMockClient(gomock.NewController(t))
 	mockClient.EXPECT().Connect().Return(mockSock, nil).AnyTimes()
 
 	eventLoop := NewEventLoop(nil)
@@ -55,7 +51,6 @@ func TestLoop_Bind(t *testing.T) {
 	mockConn := mockNet.NewMockConn(mockCtl)
 	mockConn.EXPECT().RemoteAddr().Return(&net.TCPAddr{}).AnyTimes()
 	mockConn.EXPECT().Close().Times(1)
-	mockConn.EXPECT().Read(gomock.Any()).Return(1, nil).Times(1)
 	mockConn.EXPECT().Read(gomock.Any()).Return(0, errors.New("close")).Times(1)
 	// mock socket
 	mockSock := socket.NewSocket(mockConn, nil, nil)
