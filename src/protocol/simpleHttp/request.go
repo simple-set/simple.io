@@ -12,7 +12,6 @@ import (
 
 type Request struct {
 	http.Request
-	Header   *Header
 	Body     *Body
 	Response *Response
 }
@@ -73,7 +72,8 @@ func ParseRequestLine(request *Request, buf *bufio.Reader) error {
 
 // ParseRequestHeader 解析http请求头
 func ParseRequestHeader(request *Request, buf *bufio.Reader) error {
-	header := NewHeader()
+	header := make(http.Header, 4)
+
 	for {
 		line, err := readLine(buf)
 		if err != nil {
@@ -86,26 +86,36 @@ func ParseRequestHeader(request *Request, buf *bufio.Reader) error {
 			return errors.New("malformed MIME header initial line: " + string(line))
 		}
 
-		key, value, found := strings.Cut(string(line), ":")
-		key = strings.TrimSpace(key)
+		name, value, found := strings.Cut(string(line), ":")
+		name = strings.TrimSpace(name)
 		value = strings.TrimSpace(value)
-		if key == "" || !found {
+		if name == "" || value == "" || !found {
 			return errors.New("Hearer format error： " + string(line))
 		}
 
-		if header.Has(key) {
-			header.Add(key, value)
+		if header.Get(name) == "" {
+			header.Add(name, value)
 		} else {
-			header.Set(key, value)
+			header.Set(name, value)
 		}
 	}
 
-	PragmaCacheControl(header.Header)
+	PragmaCacheControl(header)
 	////!httpguts.ValidHostHeader(hosts[0])
 	request.Header = header
 	request.Host = header.Get("Host")
 	_ = request.ParseForm()
 	return nil
+}
+
+func encodeCookie(request *Request, cookie string) {
+	cookies := strings.Split(cookie, ";")
+	for i := 0; i < len(cookies); i++ {
+		before, after, found := strings.Cut(strings.TrimSpace(cookies[i]), "=")
+		if before != "" || after != "" || !found {
+			request.AddCookie(&http.Cookie{Name: before, Value: after})
+		}
+	}
 }
 
 func ParseRequestURI(request *Request) error {
@@ -158,7 +168,7 @@ func bindResponse(request *Request) *Response {
 		response.ProtoMinor = request.ProtoMinor
 		response.ProtoMajor = request.ProtoMajor
 	}
-	if request.Header.Has("Connection") {
+	if request.Header.Get("Connection") != "" {
 		response.AddHeader("Connection", request.Header.Get("Connection"))
 	}
 

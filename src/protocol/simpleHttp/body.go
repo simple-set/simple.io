@@ -8,10 +8,6 @@ type Body struct {
 	*bytes.Buffer
 }
 
-func NewBody(body []byte) *Body {
-	return &Body{bytes.NewBuffer(body)}
-}
-
 func (b *Body) ReadBytes() ([]byte, error) {
 	if b.Len() == 0 {
 		return []byte{}, nil
@@ -29,4 +25,8 @@ func (b *Body) String() (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+func NewBody(body []byte) *Body {
+	return &Body{bytes.NewBuffer(body)}
 }

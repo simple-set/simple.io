@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 // HttpDecoder http解码器
@@ -18,6 +19,8 @@ func (h *HttpDecoder) Input(context *event.HandleContext, data interface{}) (int
 	request, err := MakeRequest(reader)
 	if err == nil {
 		request.Response.Write([]byte("hello"))
+		request.Response.AddCookie("sessionId", context.Session().Id())
+		request.Response.AddCookie("data", time.Now().String())
 		context.Session().Write(request)
 		return request, true
 	}

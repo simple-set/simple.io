@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/simple-set/simple.io/src/handle"
+	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/sirupsen/logrus"
 )
 
 func server() {
 	event.NewBootstrap().
 		TcpServer(":8000").
-		AddHandler(handle.NewStringDecoder()).
-		AddHandler(handle.NewPrintHandler()).
-		AddHandler(handle.NewEchoHandler()).
+		//AddHandler(handle.NewStringDecoder()).
+		//AddHandler(handle.NewPrintHandler()).
+		//AddHandler(handle.NewEchoHandler()).
+		AddHandler(simpleHttp.NewHttpDecoder()).
+		AddHandler(simpleHttp.NewHttpEncoder()).
 		Bind().Wait()
 }
 

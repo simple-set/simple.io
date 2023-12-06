@@ -18,7 +18,7 @@ type Response struct {
 	ProtoMinor    int
 	statusCode    int
 	statusText    string
-	Header        *Header
+	Header        http.Header
 	Cookie        []*Cookie
 	Close         bool
 	body          *Body
@@ -48,16 +48,13 @@ func (r *Response) Request() *Request {
 
 func (r *Response) AddHeader(name, value string) {
 	if r.Header == nil {
-		r.Header = NewHeader()
+		r.Header = make(http.Header, 4)
 	}
-	r.Header.Add(name, value)
-}
-
-func (r *Response) SetHeader(name, value string) {
-	if r.Header == nil {
-		r.Header = NewHeader()
+	if r.Header.Get("name") != "" {
+		r.Header.Add(name, value)
+	} else {
+		r.Header.Set(name, value)
 	}
-	r.Header.Set(name, value)
 }
 
 func (r *Response) AddCookie(name, value string) {
@@ -70,20 +67,6 @@ func (r *Response) AddCookieEntity(cookie *Cookie) {
 	}
 	r.Cookie = append(r.Cookie, cookie)
 }
-
-//func (r *Response) Write([]byte) (int, error) {
-//	return 1, nil
-//}
-//func (r *Response) ReadBytes() ([]byte, error) {
-//	if r.buf.Writer.Size() == 0 {
-//		return []byte{}, nil
-//	}
-//	body := make([]byte, b.Len())
-//	if _, err := b.Read(body); err != nil {
-//		return nil, err
-//	}
-//	return body, nil
-//}
 
 func (r *Response) Write(p []byte) (int, error) {
 	if r.body == nil {
@@ -129,7 +112,11 @@ func (r *ResponseDecode) responseLine() {
 }
 
 func (r *ResponseDecode) responseHeader() {
-	for name, values := range r.response.Header.Header {
+	if r.response.Header == nil {
+		return
+	}
+
+	for name, values := range r.response.Header {
 		if values == nil || len(values) == 0 {
 			continue
 		}
@@ -137,15 +124,10 @@ func (r *ResponseDecode) responseHeader() {
 			r.writeHeader(name, values[i])
 		}
 	}
-
 	if r.response.contentLength > 0 {
 		r.writeHeader("Content-Length", strconv.FormatInt(r.response.contentLength, 10))
 	}
-
-	if r.response.Cookie != nil && len(r.response.Cookie) > 0 {
-		r.responseCookie()
-	}
-
+	r.encodeCookie()
 	r.buf.Write(crlf)
 }
 
@@ -156,6 +138,16 @@ func (r *ResponseDecode) writeHeader(name, value string) {
 	r.buf.Write(crlf)
 }
 
+func (r *ResponseDecode) encodeCookie() {
+	if r.response.Cookie == nil || len(r.response.Cookie) == 0 {
+		return
+	}
+	for _, cookie := range r.response.Cookie {
+		if v := cookie.String(); v != "" {
+			r.writeHeader("Set-Cookie", v)
+		}
+	}
+}
 func (r *ResponseDecode) responseCookie() {
 
 }
