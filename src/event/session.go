@@ -125,28 +125,7 @@ func (p *Session) Close() error {
 
 func (p *Session) Write(data any) {
 	p.OutputContext().exchange = data
-	result := p.submitOutput(p.outputContext)
-
-	if result == nil {
-		return
-	}
-	if value, ok := result.(string); ok {
-		if _, err := p.sock.WriteString(value); err != nil {
-			_ = p.Close()
-			return
-		}
-		p.Flush()
-		return
-	}
-	if value, ok := result.([]byte); ok {
-		if _, err := p.sock.Write(value); err != nil {
-			_ = p.Close()
-			return
-		}
-		p.Flush()
-		return
-	}
-	logrus.Warnf("Sending data is discarded and must be a string or byte array")
+	p.submitOutput(p.outputContext)
 }
 
 func (p *Session) Flush() {
@@ -172,27 +151,48 @@ func (p *Session) submitInput(context *HandleContext) {
 		context.exchange = nil
 	}()
 
-	p.pipeLine.inbound(context)
+	result, state := p.pipeLine.inbound(context)
+	if state && result != nil {
+		p.OutputContext().exchange = result
+		p.submitOutput(p.outputContext)
+	}
 }
 
-func (p *Session) submitOutput(context *HandleContext) any {
+func (p *Session) submitOutput(context *HandleContext) {
 	if p.pipeLine == nil || context == nil {
-		return nil
+		return
 	}
 	if p.outputStack >= 2 {
 		logrus.Errorln("Outbound processor call overflow")
-		return nil
+		return
 	}
+
+	p.outputStack += 1
 	defer func() {
 		p.outputStack = -1
 		context.exchange = nil
 	}()
 
-	p.outputStack += 1
-	if result, ok := p.pipeLine.outbound(context); ok {
-		return result
+	result, state := p.pipeLine.outbound(context)
+	if !state || result == nil {
+		return
 	}
-	return nil
+
+	if value, ok := result.(string); ok {
+		if _, err := p.sock.WriteString(value); err != nil {
+			_ = p.Close()
+		}
+		p.Flush()
+		return
+	}
+	if value, ok := result.([]byte); ok {
+		if _, err := p.sock.Write(value); err != nil {
+			_ = p.Close()
+		}
+		p.Flush()
+		return
+	}
+	logrus.Warnf("Sending data is discarded and must be a string or byte array")
 }
 
 func (p *Session) Wait() {

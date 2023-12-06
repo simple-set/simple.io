@@ -145,7 +145,7 @@ func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange a
 		return
 	}
 
-	if context.session.state == Active {
+	if context.session.state == Active && exchange != nil {
 		var results []reflect.Value
 		if context.direction == inbound && wrap.inputMethod != nil {
 			results = wrap.inputMethod.Call([]reflect.Value{reflect.ValueOf(context), reflect.ValueOf(exchange)})

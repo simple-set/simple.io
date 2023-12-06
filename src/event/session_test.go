@@ -74,29 +74,38 @@ func TestSession_Flush(t *testing.T) {
 }
 
 func TestSession_submitInput(t *testing.T) {
+	data := []byte("data")
+	mockConn := mockNet.NewMockConn(gomock.NewController(t))
+	mockConn.EXPECT().Write(gomock.Any()).Return(len(data), nil).AnyTimes()
+
 	handle := &testHandle{state: true, result: "data"}
 	pipeLine := NewPipeLine()
 	_ = pipeLine.AddHandler(handle)
 	_ = pipeLine.AddHandler(handle)
 
 	session := ClientSession(nil, nil, pipeLine)
+	session.sock = socket.NewSocket(mockConn, nil, nil)
 	session.state = Active
-	context := session.InputContext()
-	context.exchange = "data"
-	session.submitInput(context)
+	session.InputContext().exchange = "data"
+	session.submitInput(session.InputContext())
 
-	if handle.n != 2 || context.exchange != nil {
+	if handle.n != 4 || session.InputContext().exchange != nil {
 		t.Fatal("session.submitInput()")
 	}
 }
 
 func TestSession_submitOutput(t *testing.T) {
+	data := []byte("data")
+	mockConn := mockNet.NewMockConn(gomock.NewController(t))
+	mockConn.EXPECT().Write(gomock.Any()).Return(len(data), nil).AnyTimes()
+
 	handler := &testHandle{state: true, result: "data"}
 	pipeLine := NewPipeLine()
 	_ = pipeLine.AddHandler(handler)
 	_ = pipeLine.AddHandler(handler)
 
 	session := ClientSession(nil, nil, pipeLine)
+	session.sock = socket.NewSocket(mockConn, nil, nil)
 	session.state = Disconnect
 	context := session.InputContext()
 	context.exchange = "data"
