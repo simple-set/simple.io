@@ -10,24 +10,22 @@ import (
 // HttpDecoder http解码器
 type HttpDecoder struct{}
 
-func (h *HttpDecoder) Input(context *event.HandleContext, data interface{}) (interface{}, bool) {
-	reader, ok := data.(*bufio.Reader)
-	if !ok {
+func (h *HttpDecoder) Input(context *event.HandleContext, reader *bufio.Reader) (*Request, bool) {
+	request, err := NewRequestDecoder(reader).Decoder()
+	if err != nil {
+		logrus.Errorln("Decoding HTTP protocol error, ", err)
+		_ = context.Session().Close()
+	}
+
+	request.Response = NewReplyResponse(request)
+	request.Response.AddCookie("sessionId", context.Session().Id())
+	request.Response.AddCookie("data", time.Now().Format(time.RFC3339))
+	if _, err = request.Response.Write([]byte("hello")); err != nil {
+		logrus.Errorln("response to HTTP request exception", err)
+		_ = context.Session().Close()
 		return nil, false
 	}
-
-	request, err := MakeRequest(reader)
-	if err == nil {
-		request.Response.Write([]byte("hello"))
-		request.Response.AddCookie("sessionId", context.Session().Id())
-		request.Response.AddCookie("data", time.Now().String())
-		context.Session().Write(request)
-		return request, true
-	}
-
-	logrus.Errorln("Decoding HTTP protocol error, ", err)
-	_ = context.Session().Close()
-	return nil, false
+	return request, true
 }
 
 func NewHttpDecoder() *HttpDecoder {
@@ -37,7 +35,7 @@ func NewHttpDecoder() *HttpDecoder {
 // HttpEncoder http编码器
 type HttpEncoder struct{}
 
-func (h HttpEncoder) Output(context *event.HandleContext, data interface{}) (interface{}, bool) {
+func (h HttpEncoder) Output(_ *event.HandleContext, data interface{}) (any, bool) {
 	var response *Response
 	if value, ok := data.(*Request); ok && value.Response != nil {
 		response = value.Response

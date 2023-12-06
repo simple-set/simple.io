@@ -64,6 +64,10 @@ func TestPipeLine_inbound(t *testing.T) {
 	session.InputContext().exchange = "test"
 	_, _ = pipeLine.inbound(session.InputContext())
 
+	// 交换数据 exchange == nil, 流水线不会触发执行
+	session = &Session{state: Active}
+	_, _ = pipeLine.inbound(session.InputContext())
+
 	if handler.n != 6 {
 		t.Errorf("pipeLine.inbound() error, %d", handler.n)
 	}
@@ -78,6 +82,11 @@ func TestPipeLine_outbound(t *testing.T) {
 	session := newSession()
 	session.state = Active
 	session.OutputContext().exchange = "test"
+	_, _ = pipeLine.outbound(session.OutputContext())
+
+	session = newSession()
+	session.state = Active
+	// 交换数据 exchange == nil, 流水线不会触发执行
 	_, _ = pipeLine.outbound(session.OutputContext())
 
 	if handler.n != 2 {
