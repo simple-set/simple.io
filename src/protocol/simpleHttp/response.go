@@ -84,6 +84,21 @@ func NewResponse() *Response {
 		Build()
 }
 
+// NewReplyResponse 创建请求响应体, 根据request创建Response, 用于编写HttpServer服务器时响应客户端请求
+func NewReplyResponse(request *Request) *Response {
+	response := NewResponse()
+	response.request = request
+	if request.Proto != "" {
+		response.Proto = request.Proto
+		response.ProtoMinor = request.ProtoMinor
+		response.ProtoMajor = request.ProtoMajor
+	}
+	if request.Header.Get("Connection") != "" {
+		response.AddHeader("Connection", request.Header.Get("Connection"))
+	}
+	return response
+}
+
 // ResponseDecode Response编码器
 type ResponseDecode struct {
 	response   *Response

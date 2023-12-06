@@ -38,10 +38,6 @@ type RequestBuild struct {
 	Request *Request
 }
 
-func (r *Request) AddHeader(name, value string) *RequestBuild {
-	return nil
-}
-
 func NewRequestBuild() *RequestBuild {
 	return &RequestBuild{}
 }
