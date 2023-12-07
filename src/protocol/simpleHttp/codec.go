@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 // HttpDecoder http解码器
@@ -15,16 +14,10 @@ func (h *HttpDecoder) Input(context *event.HandleContext, reader *bufio.Reader) 
 	if err != nil {
 		logrus.Errorln("Decoding HTTP protocol error, ", err)
 		_ = context.Session().Close()
+		return nil, false
 	}
 
 	request.Response = NewReplyResponse(request)
-	request.Response.AddCookie("sessionId", context.Session().Id())
-	request.Response.AddCookie("data", time.Now().Format(time.RFC3339))
-	if _, err = request.Response.Write([]byte("hello")); err != nil {
-		logrus.Errorln("response to HTTP request exception", err)
-		_ = context.Session().Close()
-		return nil, false
-	}
 	return request, true
 }
 

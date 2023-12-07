@@ -75,3 +75,19 @@ func readLine(buf *bufio.Reader) ([]byte, error) {
 	}
 	return readData, nil
 }
+
+func writeHeader(writer *bufio.Writer, name, value string) error {
+	if _, err := writer.WriteString(name); err != nil {
+		return err
+	}
+	if _, err := writer.Write(colonSpace); err != nil {
+		return err
+	}
+	if _, err := writer.WriteString(value); err != nil {
+		return err
+	}
+	if _, err := writer.Write(crlf); err != nil {
+		return err
+	}
+	return nil
+}

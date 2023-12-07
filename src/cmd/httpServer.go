@@ -1,23 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
+	"github.com/simple-set/simple.io/src/event"
+	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
+	"github.com/sirupsen/logrus"
+	"time"
 )
 
-func indexFunc(response http.ResponseWriter, request *http.Request) {
-	body := make([]byte, request.ContentLength)
-	request.Body.Read(body)
-	fmt.Println(string(body))
-	_, err := response.Write([]byte("hello"))
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("host: %s, method: %s, path: %s, code: %d", request.RemoteAddr, request.Method, request.RequestURI, 200)
+type SimpleHttpServer struct{}
+
+func (h *SimpleHttpServer) start() {
+	bootstrap := event.NewBootstrap()
+	bootstrap.TcpServer(":8000")
+	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
+	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	bootstrap.AddHandler(h)
+	bootstrap.Bind().Wait()
 }
 
-func httpServer() {
-	http.HandleFunc("/index", indexFunc)
-	http.ListenAndServe("localhost:8080", nil)
+func (h *SimpleHttpServer) Input(context *event.HandleContext, request *simpleHttp.Request) (*simpleHttp.Request, bool) {
+	logrus.Println("path=", request.URL.Path, ", method=", request.Method, ", status=", request.Response.StatusCode())
+
+	request.Response.AddCookie("sessionId", context.Session().Id())
+	request.Response.AddCookie("data", time.Now().Format(time.RFC3339))
+
+	if _, err := request.Response.Write([]byte("Hello, world!")); err != nil {
+		logrus.Errorln(err)
+		return nil, false
+	}
+	return request, true
 }

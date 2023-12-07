@@ -33,11 +33,3 @@ func (r *ResponseBuild) Build() *Response {
 func NewResponseBuild() *ResponseBuild {
 	return &ResponseBuild{response: new(Response)}
 }
-
-type RequestBuild struct {
-	Request *Request
-}
-
-func NewRequestBuild() *RequestBuild {
-	return &RequestBuild{}
-}
