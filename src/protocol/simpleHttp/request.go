@@ -2,13 +2,13 @@ package simpleHttp
 
 import (
 	"bufio"
+	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
 
 type Request struct {
 	http.Request
-	Body *Body
-	//cookies   *[]Cookie
+	Body      *Body
 	Response  *Response
 	bufWriter *bufio.Writer
 	bufReader *bufio.Reader
@@ -34,4 +34,10 @@ func (r *Request) AddCookieEntity(cookie *http.Cookie) {
 		r.Header = make(http.Header, 4)
 	}
 	r.Request.AddCookie(cookie)
+}
+
+func DefaultRequest() *Request {
+	request := NewRequestBuild().Proto("HTTP/1.1").Agent(version.Name + "/" + version.Version).Build()
+	request.ProtoMajor, request.ProtoMinor, _ = http.ParseHTTPVersion(request.Proto)
+	return request
 }

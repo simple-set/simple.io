@@ -1,6 +1,8 @@
 package main
 
 func main() {
-	httpclient := new(SimpleHttpClient)
-	httpclient.connect()
+	s := new(SimpleHttpServer)
+	s.start()
+	//httpclient := new(SimpleHttpClient)
+	//httpclient.connect()
 }

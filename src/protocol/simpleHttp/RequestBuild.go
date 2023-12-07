@@ -1,20 +1,13 @@
 package simpleHttp
 
 import (
-	"bufio"
 	"log"
-	"net/http"
 	"net/url"
 )
 
 // RequestBuild 请求对象构造器
 type RequestBuild struct {
 	request *Request
-}
-
-func (r *RequestBuild) bufReader(bufReader *bufio.Reader) *RequestBuild {
-	r.request.bufReader = bufReader
-	return r
 }
 
 func (r *RequestBuild) Header(name, value string) *RequestBuild {
@@ -52,8 +45,13 @@ func (r *RequestBuild) Post() *RequestBuild {
 	return r
 }
 
-func (r *RequestBuild) method(method string) *RequestBuild {
+func (r *RequestBuild) Method(method string) *RequestBuild {
 	r.request.Method = method
+	return r
+}
+
+func (r *RequestBuild) Proto(proto string) *RequestBuild {
+	r.request.Proto = proto
 	return r
 }
 
@@ -62,13 +60,5 @@ func (r *RequestBuild) Build() *Request {
 }
 
 func NewRequestBuild() *RequestBuild {
-	build := &RequestBuild{request: new(Request)}
-	build.request.Proto = "HTTP/1.1"
-	build.request.ProtoMajor, build.request.ProtoMinor, _ = http.ParseHTTPVersion(build.request.Proto)
-	return build
-}
-
-// ByReaderRequest 根据io.Reader构建请求对象
-func ByReaderRequest(reader *bufio.Reader) *Request {
-	return NewRequestBuild().bufReader(reader).Build()
+	return &RequestBuild{request: new(Request)}
 }

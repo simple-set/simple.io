@@ -12,8 +12,9 @@ type SimpleHttpServer struct{}
 func (h *SimpleHttpServer) start() {
 	bootstrap := event.NewBootstrap()
 	bootstrap.TcpServer(":8000")
-	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
-	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	bootstrap.AddHandler(&simpleHttp.HttpDecoder{})
+	//bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
+	//bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
 	bootstrap.AddHandler(h)
 	bootstrap.Bind().Wait()
 }

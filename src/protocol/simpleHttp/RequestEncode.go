@@ -6,13 +6,22 @@ import (
 )
 
 // RequestEncode http编码器, 把request对象编码成字节流, 根据 RFC2616 规范编码
-// 适用于编写http客户端场景，把构建好的请求对象编码成字节流发送给服务器。
+// 适用于http客户端场景，把构建好的请求对象编码成字节流发送给服务器。
 type RequestEncode struct {
 	request *Request
 }
 
 func (r *RequestEncode) Encoder() error {
-	return nil
+	if err := r.line(); err != nil {
+		return err
+	}
+	if err := r.header(); err != nil {
+		return err
+	}
+	if err := r.body(); err != nil {
+		return err
+	}
+	return r.request.bufWriter.Flush()
 }
 
 // 编码请求行

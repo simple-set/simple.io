@@ -11,8 +11,8 @@ type SimpleHttpClient struct{}
 func (s *SimpleHttpClient) connect() {
 	bootstrap := event.NewBootstrap()
 	bootstrap.TcpClient("localhost:8000")
-	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
-	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	//bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
+	//bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
 	session := bootstrap.Connect()
 
 	request := simpleHttp.NewRequestBuild().
