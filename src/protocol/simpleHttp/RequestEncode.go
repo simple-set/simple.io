@@ -43,6 +43,10 @@ func (r *RequestEncode) line() error {
 
 // 编码请求头
 func (r *RequestEncode) header() error {
+	err := writeHeader(r.request.bufWriter, "Host", r.request.Host)
+	if err != nil {
+		return err
+	}
 	if r.request.Header == nil || len(r.request.Header) == 0 {
 		return nil
 	}
@@ -75,16 +79,11 @@ func (r *RequestEncode) cookie() error {
 	if cookies == nil || len(cookies) == 0 {
 		return nil
 	}
-	cookieValue := strings.Builder{}
+	var cookieValues []string
 	for i := 0; i < len(cookies); i++ {
-		cookieValue.WriteString(cookies[i].Name)
-		cookieValue.WriteString("=")
-		cookieValue.WriteString(cookies[i].Value)
-		if i < len(cookies) {
-			cookieValue.WriteString("; ")
-		}
+		cookieValues = append(cookieValues, cookies[i].Name+"="+cookies[i].Value)
 	}
-	if err := writeHeader(r.request.bufWriter, "Cookie", cookieValue.String()); err != nil {
+	if err := writeHeader(r.request.bufWriter, "Cookie", strings.Join(cookieValues, "; ")); err != nil {
 		return err
 	}
 	return nil

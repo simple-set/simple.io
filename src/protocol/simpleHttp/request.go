@@ -41,3 +41,7 @@ func DefaultRequest() *Request {
 	request.ProtoMajor, request.ProtoMinor, _ = http.ParseHTTPVersion(request.Proto)
 	return request
 }
+
+func NewRequestReader(bufReader *bufio.Reader) *Request {
+	return &Request{bufReader: bufReader}
+}

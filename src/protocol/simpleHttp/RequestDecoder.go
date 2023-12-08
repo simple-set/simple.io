@@ -1,7 +1,6 @@
 package simpleHttp
 
 import (
-	"bufio"
 	"errors"
 	"net/http"
 	"net/textproto"
@@ -16,27 +15,27 @@ type RequestDecoder struct {
 }
 
 // Decoder 解码入口
-func (r *RequestDecoder) Decoder() (*Request, error) {
+func (r *RequestDecoder) Decoder() error {
 	if r.request == nil || r.request.bufReader == nil {
-		return nil, errors.New("the buffer has no data to read")
+		return errors.New("the buffer has no data to read")
 	}
 
 	if err := r.line(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := r.header(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := r.uri(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := r.contentLength(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := r.body(); err != nil {
-		return nil, err
+		return err
 	}
-	return r.request, nil
+	return nil
 }
 
 // 解码请求行
@@ -153,6 +152,6 @@ func (r *RequestDecoder) body() error {
 }
 
 // NewRequestDecoder 构造函数
-func NewRequestDecoder(reader *bufio.Reader) *RequestDecoder {
-	return &RequestDecoder{request: ByReaderRequest(reader)}
+func NewRequestDecoder(request *Request) *RequestDecoder {
+	return &RequestDecoder{request: request}
 }

@@ -1,7 +1,10 @@
 package simpleHttp
 
 import (
+	"errors"
+	"github.com/sirupsen/logrus"
 	"log"
+	"net/http"
 	"net/url"
 )
 
@@ -30,8 +33,12 @@ func (r *RequestBuild) Uri(uri string) *RequestBuild {
 	if err != nil {
 		log.Panic(err)
 	}
+	if requestURI.Path == "" {
+		requestURI.Path = "/"
+	}
 	r.request.URL = requestURI
 	r.request.Host = requestURI.Host
+	r.request.RequestURI = requestURI.RequestURI()
 	return r
 }
 
@@ -50,8 +57,13 @@ func (r *RequestBuild) Method(method string) *RequestBuild {
 	return r
 }
 
+// Proto 设置http协议版本, 如 HTTP/1.1、HTTP/1.
 func (r *RequestBuild) Proto(proto string) *RequestBuild {
 	r.request.Proto = proto
+	var ok bool
+	if r.request.ProtoMajor, r.request.ProtoMinor, ok = http.ParseHTTPVersion(r.request.Proto); !ok {
+		logrus.Fatal(errors.New("malformed HTTP version " + r.request.Proto))
+	}
 	return r
 }
 

@@ -1,24 +1,29 @@
-package main
+package example
 
 import (
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/simple-set/simple.io/src/version"
+	"github.com/sirupsen/logrus"
 )
 
 type SimpleHttpClient struct{}
 
-func (s *SimpleHttpClient) connect() {
+func (s *SimpleHttpClient) Connect() {
 	bootstrap := event.NewBootstrap()
-	bootstrap.TcpClient("localhost:8000")
+	bootstrap.TcpClient("153.3.238.110:80")
 	//bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
-	//bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
-	session := bootstrap.Connect()
+	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	session, err := bootstrap.Connect()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	request := simpleHttp.NewRequestBuild().
-		Uri("http://localhost:8080").
+		Uri("https://www.baidu.com/index?a=1&b=2&c").
 		Agent(version.Name+"/"+version.Version).
 		Cookie("simple.id", session.Id()).
+		Proto("HTTP/1.1").
 		Get().
 		Build()
 

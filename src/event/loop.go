@@ -13,18 +13,17 @@ func NewEventLoop(pipeLine *PipeLine) *Loop {
 	return &Loop{pipeLine: pipeLine}
 }
 
-func (p *Loop) Connect(client socket.Client) *Session {
+func (p *Loop) Connect(client socket.Client) (*Session, error) {
 	sock, err := client.Connect()
 	if err != nil {
-		logrus.Errorln(err)
-		return nil
+		return nil, err
 	}
 	clientSession := ClientSession(sock, client, p.pipeLine)
 	logrus.Debugf("Create a new clientSession, Id: %s, addr: %s", clientSession.Id(), sock.RemoteAddr())
 	clientSession.submitInput(clientSession.InputContext())
 	clientSession.state = Active
 	go p.pool(clientSession)
-	return clientSession
+	return clientSession, nil
 }
 
 func (p *Loop) Bind(server socket.Server) *Session {

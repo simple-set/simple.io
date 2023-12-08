@@ -18,6 +18,11 @@ var HttpMethods = []string{
 	"TRACE",
 }
 
+var (
+	crlf       = []byte("\r\n")
+	colonSpace = []byte(": ")
+)
+
 // ValidMethod 验证http方法
 func ValidMethod(method string) bool {
 	for _, name := range HttpMethods {
@@ -53,7 +58,7 @@ func PragmaCacheControl(header http.Header) {
 	}
 }
 
-// 从缓冲区中读取一行, 注意没有限制长度
+// 从缓冲区中读取一行, 注意:没有限制长度
 func readLine(buf *bufio.Reader) ([]byte, error) {
 	if buf == nil {
 		return nil, errors.New("the buffer has no data to read")
@@ -76,6 +81,7 @@ func readLine(buf *bufio.Reader) ([]byte, error) {
 	return readData, nil
 }
 
+// 像缓冲区写入一行
 func writeHeader(writer *bufio.Writer, name, value string) error {
 	if _, err := writer.WriteString(name); err != nil {
 		return err

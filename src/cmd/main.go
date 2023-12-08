@@ -1,8 +1,8 @@
 package main
 
+import "github.com/simple-set/simple.io/src/example"
+
 func main() {
-	s := new(SimpleHttpServer)
-	s.start()
-	//httpclient := new(SimpleHttpClient)
-	//httpclient.connect()
+	//new(example.SimpleHttpServer).Start()
+	new(example.SimpleHttpClient).Connect()
 }
