@@ -1,9 +1,5 @@
 package simpleHttp
 
-import (
-	"net/http"
-)
-
 type ResponseBuild struct {
 	response *Response
 }
@@ -18,7 +14,8 @@ func (r *ResponseBuild) Header(key, value string) *ResponseBuild {
 	return r
 }
 
-func (r *ResponseBuild) Cookie(cookie http.Cookie) *ResponseBuild {
+func (r *ResponseBuild) Server(server string) *ResponseBuild {
+	r.response.Server = server
 	return r
 }
 
@@ -32,12 +29,4 @@ func (r *ResponseBuild) Build() *Response {
 
 func NewResponseBuild() *ResponseBuild {
 	return &ResponseBuild{response: new(Response)}
-}
-
-type RequestBuild struct {
-	Request *Request
-}
-
-func NewRequestBuild() *RequestBuild {
-	return &RequestBuild{}
 }

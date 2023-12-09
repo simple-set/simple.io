@@ -57,7 +57,7 @@ func (p *Bootstrap) AddHandler(handler any) *Bootstrap {
 	return p
 }
 
-func (p *Bootstrap) Connect() *Session {
+func (p *Bootstrap) Connect() (*Session, error) {
 	return NewEventLoop(p.pipeLine).Connect(p.client)
 }
 

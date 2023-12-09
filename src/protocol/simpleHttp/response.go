@@ -2,33 +2,30 @@ package simpleHttp
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
-	"strconv"
-)
-
-var (
-	crlf       = []byte("\r\n")
-	colonSpace = []byte(": ")
 )
 
 type Response struct {
-	Proto         string
-	ProtoMajor    int
-	ProtoMinor    int
-	statusCode    int
-	statusText    string
-	Header        http.Header
-	Cookie        []*Cookie
+	Proto      string
+	ProtoMajor int
+	ProtoMinor int
+	statusCode int
+	statusText string
+	Header     http.Header
+	//Cookie        []*Cookie
 	Close         bool
 	body          *Body
-	responseBytes []byte
 	contentLength int64
+	Server        string
 	request       *Request
+	bufWriter     *bufio.Writer
+	bufReader     *bufio.Reader
 }
 
-func (r *Response) ResponseBytes() []byte {
-	return r.responseBytes
+func (r *Response) Body() *Body {
+	return r.body
 }
 
 func (r *Response) StatusCode() int {
@@ -58,14 +55,34 @@ func (r *Response) AddHeader(name, value string) {
 }
 
 func (r *Response) AddCookie(name, value string) {
-	r.AddCookieEntity(NewCookie(name, value))
+	r.AddCookieEntity(&http.Cookie{Name: name, Value: value})
 }
 
-func (r *Response) AddCookieEntity(cookie *Cookie) {
-	if r.Cookie == nil {
-		r.Cookie = make([]*Cookie, 0)
+func (r *Response) AddCookieEntity(cookie *http.Cookie) {
+	if r.Header == nil {
+		r.Header = make(http.Header, 4)
 	}
-	r.Cookie = append(r.Cookie, cookie)
+	s := fmt.Sprintf("%s=%s", sanitizeCookieName(cookie.Name), sanitizeCookieValue(cookie.Value))
+	if c := r.Header.Get("Cookie"); c != "" {
+		r.Header.Set("Cookie", c+"; "+s)
+	} else {
+		r.Header.Set("Cookie", s)
+	}
+}
+
+func (r *Response) Cookies() []*http.Cookie {
+	return readCookies(r.Header, "")
+}
+
+func (r *Response) cookie(name string) (*http.Cookie, error) {
+	for _, c := range readCookies(r.Header, name) {
+		return c, nil
+	}
+	return nil, http.ErrNoCookie
+}
+
+func (r *Response) WriteString(msg string) (int, error) {
+	return r.Write([]byte(msg))
 }
 
 func (r *Response) Write(p []byte) (int, error) {
@@ -79,9 +96,13 @@ func (r *Response) Write(p []byte) (int, error) {
 
 func NewResponse() *Response {
 	return NewResponseBuild().
-		Header("Server", version.Name+"/"+version.Version).
+		Server(version.Name + "/" + version.Version).
 		Status(http.StatusOK).
 		Build()
+}
+
+func NewResponseReader(bufReader *bufio.Reader) *Response {
+	return &Response{bufReader: bufReader}
 }
 
 // NewReplyResponse 创建请求响应体, 根据request创建Response, 用于编写HttpServer服务器时响应客户端请求
@@ -97,98 +118,4 @@ func NewReplyResponse(request *Request) *Response {
 		response.AddHeader("Connection", request.Header.Get("Connection"))
 	}
 	return response
-}
-
-// ResponseDecode Response编码器
-type ResponseDecode struct {
-	response   *Response
-	buf        *bufio.Writer
-	decodeData []byte
-	decodeErr  error
-}
-
-func (r *ResponseDecode) Decode() ([]byte, error) {
-	defer func() {
-		// TODO 编码错误，服务器500
-	}()
-	r.responseLine()
-	r.responseHeader()
-	r.responseBody()
-	r.buf.Flush()
-	r.response.responseBytes = r.decodeData
-	return r.response.ResponseBytes(), nil
-}
-
-func (r *ResponseDecode) responseLine() {
-	r.buf.WriteString(r.response.Proto + " ")
-	r.buf.WriteString(strconv.Itoa(r.response.statusCode) + " ")
-	r.buf.WriteString(r.response.statusText)
-	r.buf.Write(crlf)
-}
-
-func (r *ResponseDecode) responseHeader() {
-	if r.response.Header == nil {
-		return
-	}
-
-	for name, values := range r.response.Header {
-		if values == nil || len(values) == 0 {
-			continue
-		}
-		for i := 0; i < len(values); i++ {
-			r.writeHeader(name, values[i])
-		}
-	}
-	if r.response.contentLength > 0 {
-		r.writeHeader("Content-Length", strconv.FormatInt(r.response.contentLength, 10))
-	}
-	r.encodeCookie()
-	r.buf.Write(crlf)
-}
-
-func (r *ResponseDecode) writeHeader(name, value string) {
-	r.buf.WriteString(name)
-	r.buf.Write(colonSpace)
-	r.buf.WriteString(value)
-	r.buf.Write(crlf)
-}
-
-func (r *ResponseDecode) encodeCookie() {
-	if r.response.Cookie == nil || len(r.response.Cookie) == 0 {
-		return
-	}
-	for _, cookie := range r.response.Cookie {
-		if v := cookie.String(); v != "" {
-			r.writeHeader("Set-Cookie", v)
-		}
-	}
-}
-func (r *ResponseDecode) responseCookie() {
-
-}
-
-func (r *ResponseDecode) responseBody() {
-	if r.response.contentLength <= 0 {
-		return
-	}
-	bytes, err := r.response.body.ReadBytes()
-	if err != nil {
-		r.decodeErr = err
-		return
-	}
-	r.buf.Write(bytes)
-}
-
-func (r *ResponseDecode) Write(data []byte) (int, error) {
-	if r.decodeData == nil {
-		r.decodeData = make([]byte, 0)
-	}
-	r.decodeData = append(r.decodeData, data...)
-	return len(data), nil
-}
-
-func NewResponseDecode(response *Response) *ResponseDecode {
-	responseDecode := &ResponseDecode{response: response}
-	responseDecode.buf = bufio.NewWriter(responseDecode)
-	return responseDecode
 }
