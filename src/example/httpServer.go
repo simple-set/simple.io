@@ -5,7 +5,6 @@ import (
 	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/sirupsen/logrus"
 	"strings"
-	"time"
 )
 
 type Controller func(request *simpleHttp.Request, response *simpleHttp.Response)
@@ -30,8 +29,6 @@ func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp
 	logrus.Println("path=", request.URL.Path, ", method=", request.Method, ", status=", request.Response.StatusCode())
 
 	request.Response.AddCookie("sessionId", context.Session().Id())
-	request.Response.AddCookie("data", time.Now().Format(time.RFC3339))
-
 	h.dispatch(request)
 	return request, true
 }

@@ -2,7 +2,6 @@ package simpleHttp
 
 import (
 	"strconv"
-	"strings"
 )
 
 type ResponseEncode struct {
@@ -64,7 +63,7 @@ func (r *ResponseEncode) header() error {
 			continue
 		}
 		for i := 0; i < len(values); i++ {
-			if name == "cookie" {
+			if name == "Cookie" {
 				if err := r.cookie(); err != nil {
 					return err
 				}
@@ -85,15 +84,10 @@ func (r *ResponseEncode) header() error {
 // 编码cookie
 func (r *ResponseEncode) cookie() error {
 	cookies := r.response.Cookies()
-	if cookies == nil || len(cookies) == 0 {
-		return nil
-	}
-	var cookieValues []string
 	for i := 0; i < len(cookies); i++ {
-		cookieValues = append(cookieValues, cookies[i].Name+"="+cookies[i].Value)
-	}
-	if err := writeHeader(r.response.bufWriter, "Set-Cookie", strings.Join(cookieValues, "; ")); err != nil {
-		return err
+		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].Name+"="+cookies[i].Value); err != nil {
+			return err
+		}
 	}
 	return nil
 }
