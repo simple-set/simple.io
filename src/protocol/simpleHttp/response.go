@@ -2,6 +2,7 @@ package simpleHttp
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
@@ -51,6 +52,37 @@ func (r *Response) AddHeader(name, value string) {
 	} else {
 		r.Header.Set(name, value)
 	}
+}
+
+func (r *Response) AddCookie(name, value string) {
+	r.AddCookieEntity(&http.Cookie{Name: name, Value: value})
+}
+
+func (r *Response) AddCookieEntity(cookie *http.Cookie) {
+	if r.Header == nil {
+		r.Header = make(http.Header, 4)
+	}
+	s := fmt.Sprintf("%s=%s", sanitizeCookieName(cookie.Name), sanitizeCookieValue(cookie.Value))
+	if c := r.Header.Get("Cookie"); c != "" {
+		r.Header.Set("Cookie", c+"; "+s)
+	} else {
+		r.Header.Set("Cookie", s)
+	}
+}
+
+func (r *Response) Cookies() []*http.Cookie {
+	return readCookies(r.Header, "")
+}
+
+func (r *Response) cookie(name string) (*http.Cookie, error) {
+	for _, c := range readCookies(r.Header, name) {
+		return c, nil
+	}
+	return nil, http.ErrNoCookie
+}
+
+func (r *Response) WriteString(msg string) (int, error) {
+	return r.Write([]byte(msg))
 }
 
 func (r *Response) Write(p []byte) (int, error) {
