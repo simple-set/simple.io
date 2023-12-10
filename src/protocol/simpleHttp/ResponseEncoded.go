@@ -96,11 +96,7 @@ func (r *ResponseEncode) body() error {
 	if r.response.contentLength <= 0 {
 		return nil
 	}
-	bytes, err := r.response.body.ReadBytes()
-	if err != nil {
-		return err
-	}
-	if _, err := r.response.bufWriter.Write(bytes); err != nil {
+	if _, err := r.response.bufWriter.ReadFrom(r.response.body); err != nil {
 		return err
 	}
 	return nil

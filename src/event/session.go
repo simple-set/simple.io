@@ -150,12 +150,7 @@ func (p *Session) submitInput(context *HandleContext) {
 	defer func() {
 		context.exchange = nil
 	}()
-
-	result, state := p.pipeLine.inbound(context)
-	if state && result != nil {
-		p.OutputContext().exchange = result
-		p.submitOutput(p.outputContext)
-	}
+	p.pipeLine.inbound(context)
 }
 
 func (p *Session) submitOutput(context *HandleContext) {
@@ -192,7 +187,6 @@ func (p *Session) submitOutput(context *HandleContext) {
 		p.Flush()
 		return
 	}
-	logrus.Warnf("Sending data is discarded and must be a string or byte array")
 }
 
 func (p *Session) Wait() {

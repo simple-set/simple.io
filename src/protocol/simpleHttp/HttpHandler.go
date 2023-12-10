@@ -57,7 +57,7 @@ func (h HttpEncoder) Input(context *event.HandleContext, reader *bufio.Reader) (
 		logrus.Errorln(err)
 		_ = context.Session().Close()
 	}
-	return nil, false
+	return response, true
 }
 
 func (h HttpEncoder) Output(context *event.HandleContext, request *Request) (any, bool) {
@@ -67,7 +67,7 @@ func (h HttpEncoder) Output(context *event.HandleContext, request *Request) (any
 		_ = context.Session().Close()
 		return nil, false
 	}
-	return nil, true
+	return request, true
 }
 
 func NewHttpEncoder() *HttpEncoder { return &HttpEncoder{} }
