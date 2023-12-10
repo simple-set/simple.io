@@ -11,12 +11,16 @@ type StringDecoder struct{}
 func NewStringDecoder() *StringDecoder { return &StringDecoder{} }
 
 func (s *StringDecoder) Input(_ *event.HandleContext, reader *bufio.Reader) (any, bool) {
-	bytes := make([]byte, reader.Size())
+	size := reader.Buffered()
+	if size <= 0 {
+		return nil, false
+	}
 
-	if n, err := reader.Read(bytes); err == nil {
-		return string(bytes[:n]), true
+	bytes := make([]byte, reader.Buffered())
+	if _, err := reader.Read(bytes); err == nil {
+		return string(bytes), true
 	} else {
 		logrus.Errorln("Exception reading data from buffer", err)
-		return "", false
+		return nil, false
 	}
 }
