@@ -7,11 +7,9 @@ import (
 
 type PrintHandler struct{}
 
-func NewPrintHandler() *PrintHandler {
-	return &PrintHandler{}
-}
+func NewPrintHandler() *PrintHandler { return &PrintHandler{} }
 
-func (p PrintHandler) Input(context *event.HandleContext, data interface{}) (interface{}, bool) {
+func (p PrintHandler) Input(context *event.HandleContext, data any) (any, bool) {
 	session := context.Session()
 	logrus.Printf("RemoteAddr: %s, %s, received data: %v", session.Sock().RemoteAddr(), session.Id(), data)
 	return data, true
