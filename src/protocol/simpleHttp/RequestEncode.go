@@ -89,7 +89,7 @@ func (r *RequestEncode) cookie() error {
 	return nil
 }
 
-// 编码请求题
+// 编码请求体
 func (r *RequestEncode) body() error {
 	if (r.request.Method == "POST" || r.request.Method == "PUT") && r.request.ContentLength > 0 {
 		if n, err := r.request.bufWriter.Write(r.request.Body.Bytes()); err != nil {

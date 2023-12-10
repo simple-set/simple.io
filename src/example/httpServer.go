@@ -26,7 +26,7 @@ func (h *HttpServerDemo) Start() {
 }
 
 func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp.Request) (*simpleHttp.Request, bool) {
-	logrus.Println("path=", request.URL.Path, ", method=", request.Method, ", status=", request.Response.StatusCode())
+	logrus.Println("path="+request.URL.RequestURI(), ", method="+request.Method, ", status=", request.Response.StatusCode())
 
 	request.Response.AddCookie("sessionId", context.Session().Id())
 	h.dispatch(request)
@@ -34,7 +34,7 @@ func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp
 }
 
 func (h *HttpServerDemo) dispatch(request *simpleHttp.Request) {
-	for path, _ := range h.mapping {
+	for path := range h.mapping {
 		if strings.HasPrefix(request.URL.Path, path) {
 			h.mapping[path](request, request.Response)
 			return
@@ -55,7 +55,8 @@ func (h *HttpServerDemo) AddController(path string, controller Controller) {
 func NewHttpServerDemo(addr string) {
 	httpServerDemo := &HttpServerDemo{addr: addr}
 	httpServerDemo.AddController("/index", func(request *simpleHttp.Request, response *simpleHttp.Response) {
-		_, _ = response.Write([]byte("hello world"))
+		_, _ = response.Write([]byte("hello "))
+		_, _ = response.Write([]byte("world"))
 	})
 	httpServerDemo.Start()
 }
