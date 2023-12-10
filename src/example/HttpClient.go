@@ -5,15 +5,27 @@ import (
 	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/simple-set/simple.io/src/version"
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
-type SimpleHttpClient struct{}
+type SimpleHttpClient struct {
+	wg       sync.WaitGroup
+	response *simpleHttp.Response
+}
 
-func (s *SimpleHttpClient) Connect() {
+func (s *SimpleHttpClient) Input(context *event.HandleContext, response *simpleHttp.Response) (any, bool) {
+	logrus.Infoln(response)
+	s.wg.Done()
+	return response, true
+}
+
+func NewSimpleHttpClient() *SimpleHttpClient { return &SimpleHttpClient{} }
+
+func (s *SimpleHttpClient) Connect() *simpleHttp.Response {
 	bootstrap := event.NewBootstrap()
 	bootstrap.TcpClient("153.3.238.110:80")
-	//bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
 	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	bootstrap.AddHandler(s)
 	session, err := bootstrap.Connect()
 	if err != nil {
 		logrus.Fatal(err)
@@ -27,41 +39,8 @@ func (s *SimpleHttpClient) Connect() {
 		Get().
 		Build()
 
+	s.wg.Add(1)
 	session.Write(request)
-
-	//scanner := bufio.NewScanner(os.Stdin)
-	//for {
-	//	request := simpleHttp.DefaultRequest()
-	//	session.Write(request)
-	//}
-	session.Wait()
+	s.wg.Wait()
+	return s.response
 }
-
-//func (s SimpleHttpClient) Output(context *event.HandleContext, data T) (any, bool) {
-//	//TODO implement me
-//	panic("implement me")
-//}
-
-//
-//func httpClient() {
-//	//var request string = "POST /index HTTP/1.1\nHost: localhost:8080\nConnection: keep-alive\nContent-Length: 19\nSec-Ch-Ua: \"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"\nContent-Type: text/plain;charset=UTF-8\nCache-Control: no-cache\nSec-Ch-Ua-Mobile: ?0\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36\nSec-Ch-Ua-Platform: \"Windows\"\nAccept: */*\nOrigin: chrome-extension://coohjcphdfgbiolnekdpbcijmhambjff\nSec-Fetch-Site: none\nSec-Fetch-Mode: cors\nSec-Fetch-Dest: empty\nAccept-Encoding: gzip, deflate, br\nAccept-Language: zh-CN,zh;q=0.9,en;q=0.8\n\n{\n\n  \"name\": \"xk\"\n}"
-//	var request1 string = "POST /index HTTP/1.1\nHost: localhost:8080\nConnection: keep-alive\nContent-Length: 19\nSec-Ch-Ua: \"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"\nContent-Type: text/plain;charset=UTF-8\nCache-Control: no-cache\nSec-Ch-Ua-Mobile: ?0\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36\nSec-Ch-Ua-Platform: \"Windows\"\nAccept: */*\nOrigin: chrome-extension://coohjcphdfgbiolnekdpbcijmhambjff"
-//	var request2 string = "Sec-Fetch-Site: none\nSec-Fetch-Mode: cors\nSec-Fetch-Dest: empty\nAccept-Encoding: gzip, deflate, br\nAccept-Language: zh-CN,zh;q=0.9,en;q=0.8\n\n{\n\n  \"name\": \"xk\"\n}"
-//
-//	bootstrap := event.NewBootstrap()
-//	bootstrap.TcpClient("localhost:8080")
-//	bootstrap.AddHandler(handle.NewStringDecoder())
-//	bootstrap.AddHandler(handle.NewPrintHandler())
-//	session := bootstrap.Connect()
-//
-//	for {
-//		scanner := bufio.NewScanner(os.Stdin)
-//		for {
-//			// 一个请求分为两次发送, 模拟半包效果
-//			scanner.Scan()
-//			session.WriteAndFlush(request1)
-//			scanner.Scan()
-//			session.WriteAndFlush(request2)
-//		}
-//	}
-//}
