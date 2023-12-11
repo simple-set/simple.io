@@ -8,17 +8,19 @@ import (
 
 type StringDecoder struct{}
 
-func (s *StringDecoder) Input(_ *event.HandleContext, reader *bufio.Reader) (string, bool) {
-	bytes := make([]byte, reader.Size())
+func NewStringDecoder() *StringDecoder { return &StringDecoder{} }
 
-	if n, err := reader.Read(bytes); err == nil {
-		return string(bytes[:n]), true
+func (s *StringDecoder) Input(_ *event.HandleContext, reader *bufio.Reader) (any, bool) {
+	size := reader.Buffered()
+	if size <= 0 {
+		return nil, false
+	}
+
+	bytes := make([]byte, reader.Buffered())
+	if _, err := reader.Read(bytes); err == nil {
+		return string(bytes), true
 	} else {
 		logrus.Errorln("Exception reading data from buffer", err)
-		return "", false
+		return nil, false
 	}
-}
-
-func NewStringDecoder() *StringDecoder {
-	return &StringDecoder{}
 }
