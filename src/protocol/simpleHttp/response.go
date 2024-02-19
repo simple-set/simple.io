@@ -7,13 +7,13 @@ import (
 )
 
 type Response struct {
-	Proto      string
-	ProtoMajor int
-	ProtoMinor int
-	statusCode int
-	statusText string
-	Header     http.Header
-	//Cookie        []*Cookie
+	Proto         string
+	ProtoMajor    int
+	ProtoMinor    int
+	statusCode    int
+	statusText    string
+	Header        http.Header
+	Cookie        []*Cookie
 	Close         bool
 	body          *Body
 	contentLength int64
@@ -51,6 +51,13 @@ func (r *Response) AddHeader(name, value string) {
 	} else {
 		r.Header.Set(name, value)
 	}
+}
+
+func (r *Response) AddCookie(name, value string) {
+	if r.Cookie == nil {
+		r.Cookie = make([]*Cookie, 0)
+	}
+	r.Cookie = append(r.Cookie, NewCookie(name, value))
 }
 
 func (r *Response) Write(p []byte) (int, error) {

@@ -7,8 +7,8 @@ import (
 	"reflect"
 )
 
-// 处理的包装类型
-// 使用包装器的主要原因是泛化处理器, 由于go的泛型无法断言(像java一样多好啊), 包装器维护反射对象调用处理器
+// 处理器的包装类型
+// 使用包装类型的主要原因是泛化处理器, 由于go的泛型无法断言, 包装器维护反射对象调用处理器
 type handlerWrap struct {
 	name             string
 	activateMethod   *reflect.Value

@@ -11,9 +11,9 @@ import (
 type SessionType int
 
 const (
-	ClientType SessionType = iota
-	ServerType
-	ListenType
+	ClientSession SessionType = iota
+	ServerSession
+	ListenSession
 )
 
 type SessionState int
@@ -37,37 +37,6 @@ type Session struct {
 	outputStack   int
 	handles       *collect.LinkedNode[any]
 	wg            sync.WaitGroup
-}
-
-func newSession() *Session {
-	session := &Session{id: uuid.New().String(), state: Accept}
-	session.wg.Add(1)
-	return session
-}
-
-func ListenSession(server socket.Server) *Session {
-	session := newSession()
-	session.server = server
-	session.sessionType = ListenType
-	return session
-}
-
-func ServerSession(sock *socket.Socket, server socket.Server, pipeline *PipeLine) *Session {
-	session := newSession()
-	session.sock = sock
-	session.server = server
-	session.pipeLine = pipeline
-	session.sessionType = ServerType
-	return session
-}
-
-func ClientSession(sock *socket.Socket, client socket.Client, pipeline *PipeLine) *Session {
-	session := newSession()
-	session.sock = sock
-	session.client = client
-	session.pipeLine = pipeline
-	session.sessionType = ClientType
-	return session
 }
 
 func (p *Session) Id() string {
@@ -197,4 +166,35 @@ func (p *Session) submitOutput(context *HandleContext) {
 
 func (p *Session) Wait() {
 	p.wg.Wait()
+}
+
+func newSession() *Session {
+	session := &Session{id: uuid.New().String(), state: Accept}
+	session.wg.Add(1)
+	return session
+}
+
+func newListenSession(server socket.Server) *Session {
+	session := newSession()
+	session.server = server
+	session.sessionType = ListenSession
+	return session
+}
+
+func NewServerSession(sock *socket.Socket, server socket.Server, pipeline *PipeLine) *Session {
+	session := newSession()
+	session.sock = sock
+	session.server = server
+	session.pipeLine = pipeline
+	session.sessionType = ServerSession
+	return session
+}
+
+func NewClientSession(sock *socket.Socket, client socket.Client, pipeline *PipeLine) *Session {
+	session := newSession()
+	session.sock = sock
+	session.client = client
+	session.pipeLine = pipeline
+	session.sessionType = ClientSession
+	return session
 }

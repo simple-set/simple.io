@@ -69,8 +69,28 @@ func (r *ResponseEncode) header() error {
 			}
 		}
 	}
+
+	// 编码cookie
+	if err := r.cookie(); err != nil {
+		return err
+	}
+
 	if _, err := r.response.bufWriter.Write(crlf); err != nil {
 		return err
+	}
+	return nil
+}
+
+// 编码cookie
+func (r *ResponseEncode) cookie() error {
+	cookies := r.response.Cookie
+	if cookies == nil || len(cookies) == 0 {
+		return nil
+	}
+	for i := 0; i < len(cookies); i++ {
+		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].String()); err != nil {
+			return nil
+		}
 	}
 	return nil
 }

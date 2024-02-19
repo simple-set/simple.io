@@ -10,6 +10,19 @@ type TcpServer struct {
 	listenTcp  *net.TCPListener
 }
 
+func (p *TcpServer) Accept() (*Socket, error) {
+	conn, err := p.listenTcp.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return NewSocket(conn, p, nil), nil
+}
+
+func (p *TcpServer) Close() error {
+	err := p.listenTcp.Close()
+	return err
+}
+
 func NewTcpServer(addr string) (*TcpServer, error) {
 	// 创建tcp地址
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
@@ -25,17 +38,4 @@ func NewTcpServer(addr string) (*TcpServer, error) {
 
 	logrus.Infoln("Start the TCP socket at address", tcpAddr)
 	return &TcpServer{tcpAddr, listenTCP}, nil
-}
-
-func (p *TcpServer) Accept() (*Socket, error) {
-	conn, err := p.listenTcp.Accept()
-	if err != nil {
-		return nil, err
-	}
-	return NewSocket(conn, p, nil), nil
-}
-
-func (p *TcpServer) Close() error {
-	err := p.listenTcp.Close()
-	return err
 }

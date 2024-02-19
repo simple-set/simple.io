@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// Request http请求体
 type Request struct {
 	http.Request
 	Body      *Body

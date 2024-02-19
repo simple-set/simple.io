@@ -87,7 +87,6 @@ func (r *ResponseDecode) header() error {
 		}
 	}
 
-	//!httpguts.ValidHostHeader(hosts[0])
 	PragmaCacheControl(header)
 	r.response.Header = header
 	r.response.Server = header.Get("Server")
