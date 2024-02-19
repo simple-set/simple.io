@@ -2,6 +2,7 @@ package simpleHttp
 
 import (
 	"errors"
+	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"net/textproto"
 	"net/url"
@@ -78,14 +79,22 @@ func (r *RequestDecoder) header() error {
 			break
 		}
 		if line[0] == ' ' || line[0] == '\t' {
-			return errors.New("malformed MIME header initial line: " + string(line))
+			return badRequestError("malformed MIME header initial line: " + string(line))
+
 		}
 
 		name, value, found := strings.Cut(string(line), ":")
 		name = strings.TrimSpace(name)
 		value = strings.TrimSpace(value)
+
 		if name == "" || value == "" || !found {
-			return errors.New("Hearer format error： " + string(line))
+			return badRequestError("Hearer format error： " + string(line))
+		}
+		if !httpguts.ValidHeaderFieldName(name) {
+			return badRequestError("invalid header name: " + value)
+		}
+		if !httpguts.ValidHeaderFieldValue(value) {
+			return badRequestError("invalid header value: " + value)
 		}
 
 		if header.Get(name) == "" {
@@ -95,7 +104,6 @@ func (r *RequestDecoder) header() error {
 		}
 	}
 
-	//!httpguts.ValidHostHeader(hosts[0])
 	// 调整缓存头
 	PragmaCacheControl(header)
 	r.request.Header = header

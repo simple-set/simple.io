@@ -4,25 +4,59 @@ import (
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/sirupsen/logrus"
-	"time"
+	"strings"
 )
 
-type SimpleHttpServer struct{}
+type Controller func(request *simpleHttp.Request, response *simpleHttp.Response)
 
-func (h *SimpleHttpServer) Start() {
-	bootstrap := event.NewBootstrap()
-	bootstrap.TcpServer("localhost:8000")
-	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
-	bootstrap.AddHandler(h)
-	bootstrap.Bind().Wait()
+type HttpServerDemo struct {
+	addr    string
+	session *event.Session
+	mapping map[string]Controller
 }
 
-func (h *SimpleHttpServer) Input(context *event.HandleContext, request *simpleHttp.Request) (*simpleHttp.Request, bool) {
-	logrus.Println("path=", request.URL.Path, ", method=", request.Method, ", status=", request.Response.StatusCode())
-	request.Response.AddCookie("data", time.Now().Format(time.RFC3339))
-	if _, err := request.Response.Write([]byte("Hello, world!")); err != nil {
-		logrus.Errorln(err)
-		return nil, false
-	}
+func (h *HttpServerDemo) Start() {
+	bootstrap := event.NewBootstrap()
+	bootstrap.TcpServer(h.addr)
+	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
+	bootstrap.AddHandler(h)
+
+	h.session = bootstrap.Bind()
+	h.session.Wait()
+}
+
+func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp.Request) (*simpleHttp.Request, bool) {
+	logrus.Println("path="+request.URL.RequestURI(), ", method="+request.Method, ", status=", request.Response.StatusCode())
+
+	request.Response.AddCookie("sessionId", context.Session().Id())
+	h.dispatch(request)
 	return request, true
+}
+
+func (h *HttpServerDemo) dispatch(request *simpleHttp.Request) {
+	for path := range h.mapping {
+		if strings.HasPrefix(request.URL.Path, path) {
+			h.mapping[path](request, request.Response)
+			return
+		}
+	}
+
+	request.Response.SetStatusCode(404)
+	_, _ = request.Response.Write([]byte("404 not found"))
+}
+
+func (h *HttpServerDemo) AddController(path string, controller Controller) {
+	if h.mapping == nil {
+		h.mapping = make(map[string]Controller)
+	}
+	h.mapping[path] = controller
+}
+
+func NewHttpServerDemo(addr string) {
+	httpServerDemo := &HttpServerDemo{addr: addr}
+	httpServerDemo.AddController("/index", func(request *simpleHttp.Request, response *simpleHttp.Response) {
+		_, _ = response.Write([]byte("hello "))
+		_, _ = response.Write([]byte("world"))
+	})
+	httpServerDemo.Start()
 }

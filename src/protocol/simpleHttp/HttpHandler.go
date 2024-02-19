@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
+	"net/http"
+	"time"
 )
 
 // HttpDecoder http解码器, 适用于服务端模式
@@ -34,6 +36,9 @@ func (h *HttpDecoder) Output(context *event.HandleContext, data any) (any, bool)
 		logrus.Warnln("HTTP encoder execution failed with no available response")
 		return nil, false
 	}
+	if response.Header.Get("Date") == "" {
+		response.Header.Add("Date", time.Now().Format(http.TimeFormat))
+	}
 
 	response.bufWriter = context.Session().Sock().Writer
 	if err := NewResponseEncoded(response).Codec(); err != nil {
@@ -52,7 +57,7 @@ func (h HttpEncoder) Input(context *event.HandleContext, reader *bufio.Reader) (
 		logrus.Errorln(err)
 		_ = context.Session().Close()
 	}
-	return nil, false
+	return response, true
 }
 
 func (h HttpEncoder) Output(context *event.HandleContext, request *Request) (any, bool) {
@@ -62,7 +67,7 @@ func (h HttpEncoder) Output(context *event.HandleContext, request *Request) (any
 		_ = context.Session().Close()
 		return nil, false
 	}
-	return nil, true
+	return request, true
 }
 
 func NewHttpEncoder() *HttpEncoder { return &HttpEncoder{} }

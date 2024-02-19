@@ -63,18 +63,18 @@ func (r *ResponseEncode) header() error {
 			continue
 		}
 		for i := 0; i < len(values); i++ {
+			if name == "Cookie" {
+				if err := r.cookie(); err != nil {
+					return err
+				}
+				continue
+			}
 			err := writeHeader(r.response.bufWriter, name, values[i])
 			if err != nil {
 				return err
 			}
 		}
 	}
-
-	// 编码cookie
-	if err := r.cookie(); err != nil {
-		return err
-	}
-
 	if _, err := r.response.bufWriter.Write(crlf); err != nil {
 		return err
 	}
@@ -83,13 +83,10 @@ func (r *ResponseEncode) header() error {
 
 // 编码cookie
 func (r *ResponseEncode) cookie() error {
-	cookies := r.response.Cookie
-	if cookies == nil || len(cookies) == 0 {
-		return nil
-	}
+	cookies := r.response.Cookies()
 	for i := 0; i < len(cookies); i++ {
-		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].String()); err != nil {
-			return nil
+		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].Name+"="+cookies[i].Value); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -99,11 +96,7 @@ func (r *ResponseEncode) body() error {
 	if r.response.contentLength <= 0 {
 		return nil
 	}
-	bytes, err := r.response.body.ReadBytes()
-	if err != nil {
-		return err
-	}
-	if _, err := r.response.bufWriter.Write(bytes); err != nil {
+	if _, err := r.response.bufWriter.ReadFrom(r.response.body); err != nil {
 		return err
 	}
 	return nil
