@@ -85,7 +85,7 @@ func (r *ResponseEncode) header() error {
 func (r *ResponseEncode) cookie() error {
 	cookies := r.response.Cookies()
 	for i := 0; i < len(cookies); i++ {
-		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].Name+"="+cookies[i].Value); err != nil {
+		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].String()); err != nil {
 			return err
 		}
 	}

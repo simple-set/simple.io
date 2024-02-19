@@ -2,18 +2,18 @@ package simpleHttp
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
 
 type Response struct {
-	Proto      string
-	ProtoMajor int
-	ProtoMinor int
-	statusCode int
-	statusText string
-	Header     http.Header
-	//Cookie        []*Cookie
+	Proto         string
+	ProtoMajor    int
+	ProtoMinor    int
+	statusCode    int
+	statusText    string
+	Header        http.Header
 	Close         bool
 	body          *Body
 	contentLength int64
