@@ -34,6 +34,7 @@ func (h *HttpDecoder) Output(context *event.HandleContext, data any) (any, bool)
 
 	if response == nil {
 		logrus.Warnln("HTTP encoder execution failed with no available response")
+		_ = context.Session().Close()
 		return nil, false
 	}
 	if response.Header.Get("Date") == "" {
@@ -44,6 +45,8 @@ func (h *HttpDecoder) Output(context *event.HandleContext, data any) (any, bool)
 	if err := NewResponseEncoded(response).Codec(); err != nil {
 		logrus.Errorln("HTTP encoder execution failed, ", err)
 	}
+
+	context.Session().Flush()
 	return nil, false
 }
 

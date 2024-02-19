@@ -119,7 +119,12 @@ func (p *Session) submitInput(context *HandleContext) {
 	defer func() {
 		context.exchange = nil
 	}()
-	p.pipeLine.inbound(context)
+
+	result, state := p.pipeLine.inbound(context)
+	if state && result != nil {
+		p.OutputContext().exchange = result
+		p.submitOutput(p.outputContext)
+	}
 }
 
 func (p *Session) submitOutput(context *HandleContext) {

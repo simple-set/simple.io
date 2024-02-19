@@ -18,10 +18,6 @@ func (r *ResponseEncode) Codec() error {
 	if err := r.body(); err != nil {
 		return err
 	}
-	err := r.response.bufWriter.Flush()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
