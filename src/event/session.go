@@ -5,6 +5,7 @@ import (
 	"github.com/simple-set/simple.io/src/collect"
 	"github.com/simple-set/simple.io/src/socket"
 	"github.com/sirupsen/logrus"
+	"io"
 	"sync"
 )
 
@@ -97,6 +98,22 @@ func (p *Session) Write(data any) {
 	p.submitOutput(p.outputContext)
 }
 
+func (p *Session) WriteSocket(data any) (n int, err error) {
+	if value, ok := data.(string); ok {
+		n, err = p.sock.WriteString(value)
+	} else if value, ok := data.([]byte); ok {
+		n, err = p.sock.Write(value)
+	} else if value, ok := data.(io.Reader); ok {
+		_, err = p.sock.ReadFrom(value)
+	}
+
+	if err != nil {
+		_ = p.Close()
+	}
+	p.Flush()
+	return
+}
+
 func (p *Session) Flush() {
 	if p.sock == nil {
 		return
@@ -142,24 +159,8 @@ func (p *Session) submitOutput(context *HandleContext) {
 		context.exchange = nil
 	}()
 
-	result, state := p.pipeLine.outbound(context)
-	if !state || result == nil {
-		return
-	}
-
-	if value, ok := result.(string); ok {
-		if _, err := p.sock.WriteString(value); err != nil {
-			_ = p.Close()
-		}
-		p.Flush()
-		return
-	}
-	if value, ok := result.([]byte); ok {
-		if _, err := p.sock.Write(value); err != nil {
-			_ = p.Close()
-		}
-		p.Flush()
-		return
+	if result, state := p.pipeLine.outbound(context); state && result != nil {
+		_, _ = p.WriteSocket(result)
 	}
 }
 
