@@ -18,18 +18,19 @@ type HttpServerDemo struct {
 func (h *HttpServerDemo) Start() {
 	bootstrap := event.NewBootstrap()
 	bootstrap.TcpServer(h.addr)
-	bootstrap.AddHandler(simpleHttp.NewHttpDecoder())
+	bootstrap.AddHandler(simpleHttp.NewServerHandler())
 	bootstrap.AddHandler(h)
 
 	h.session = bootstrap.Bind()
 	h.session.Wait()
 }
 
-func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp.Request) (*simpleHttp.Request, bool) {
+func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp.Request) (any, bool) {
 	logrus.Println("path="+request.URL.RequestURI(), ", method="+request.Method, ", status=", request.Response.StatusCode())
 
 	request.Response.AddCookie("sessionId", context.Session().Id())
 	h.dispatch(request)
+	context.Session().Write(request)
 	return request, true
 }
 

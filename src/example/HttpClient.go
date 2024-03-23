@@ -24,7 +24,7 @@ func NewSimpleHttpClient() *SimpleHttpClient { return &SimpleHttpClient{} }
 func (s *SimpleHttpClient) Connect() *simpleHttp.Response {
 	bootstrap := event.NewBootstrap()
 	bootstrap.TcpClient("153.3.238.110:80")
-	bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
+	//bootstrap.AddHandler(simpleHttp.NewHttpEncoder())
 	bootstrap.AddHandler(s)
 	session, err := bootstrap.Connect()
 	if err != nil {

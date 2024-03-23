@@ -29,8 +29,9 @@ func (p *PipeLine) InsertHandler(index int, handler any) (err error) {
 
 func (p *PipeLine) inbound(context *HandleContext) (interface{}, bool) {
 	if p.handlers == nil || p.handlers.GetFirst() == nil {
-		return context.exchange, true
+		return nil, false
 	}
+
 	pointHandle := p.handlers.GetFirst()
 	var exchange = context.exchange
 	var state = true
@@ -49,7 +50,7 @@ func (p *PipeLine) inbound(context *HandleContext) (interface{}, bool) {
 
 func (p *PipeLine) outbound(context *HandleContext) (interface{}, bool) {
 	if p.handlers == nil || p.handlers.GetLast() == nil {
-		return context.exchange, true
+		return nil, false
 	}
 	pointHandle := p.handlers.GetLast()
 	var exchange = context.exchange
@@ -67,10 +68,7 @@ func (p *PipeLine) outbound(context *HandleContext) (interface{}, bool) {
 	}
 }
 
-func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange any) (result any, state bool) {
-	result = exchange
-	state = true
-
+func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange any) (any, bool) {
 	defer func() {
 		// 处理器执行预期外异常
 		if err := recover(); err != nil {
@@ -81,15 +79,12 @@ func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange a
 
 	if context.session.state == Accept && wrap.activateMethod != nil {
 		value := wrap.activateMethod.Call([]reflect.Value{reflect.ValueOf(context)})
-		state = value[0].Bool()
-		return
+		return exchange, value[0].Bool()
 	}
 	if context.session.state == Disconnect && wrap.disconnectMethod != nil {
 		value := wrap.disconnectMethod.Call([]reflect.Value{reflect.ValueOf(context)})
-		state = value[0].Bool()
-		return
+		return exchange, value[0].Bool()
 	}
-
 	if context.session.state == Active && exchange != nil {
 		var results []reflect.Value
 		if context.direction == inbound && wrap.inputMethod != nil {
@@ -99,11 +94,10 @@ func (p *PipeLine) execute(wrap *handlerWrap, context *HandleContext, exchange a
 		}
 
 		if results != nil {
-			result = results[0].Interface()
-			state = results[1].Bool()
+			return results[0].Interface(), results[1].Bool()
 		}
 	}
-	return
+	return exchange, true
 }
 
 func NewPipeLine() *PipeLine {

@@ -89,7 +89,7 @@ func TestSession_submitInput(t *testing.T) {
 	session.InputContext().exchange = "data"
 	session.submitInput(session.InputContext())
 
-	if handle.n != 4 || session.InputContext().exchange != nil {
+	if handle.n != 2 || session.InputContext().exchange != nil {
 		t.Fatal("session.submitInput()")
 	}
 }

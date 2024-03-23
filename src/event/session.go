@@ -109,8 +109,9 @@ func (p *Session) WriteSocket(data any) (n int, err error) {
 
 	if err != nil {
 		_ = p.Close()
+	} else {
+		p.Flush()
 	}
-	p.Flush()
 	return
 }
 
@@ -130,18 +131,14 @@ func (p *Session) WriteAndFlush(data any) {
 }
 
 func (p *Session) submitInput(context *HandleContext) {
-	if p.pipeLine == nil || context == nil {
-		return
-	}
 	defer func() {
 		context.exchange = nil
 	}()
 
-	result, state := p.pipeLine.inbound(context)
-	if state && result != nil {
-		p.OutputContext().exchange = result
-		p.submitOutput(p.outputContext)
+	if p.pipeLine == nil || context == nil {
+		return
 	}
+	p.pipeLine.inbound(context)
 }
 
 func (p *Session) submitOutput(context *HandleContext) {
