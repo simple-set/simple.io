@@ -30,7 +30,9 @@ func (r *RpcServer) Input(context *event.HandleContext, message *simpleRpc.Messa
 	}
 
 	if value, ok := result.(string); ok {
-		return simpleRpc.NewResponse([]byte(value)), true
+		response := simpleRpc.NewResponse([]byte(value))
+		context.Session().Write(response)
+		return response, true
 	}
 	return nil, false
 }
