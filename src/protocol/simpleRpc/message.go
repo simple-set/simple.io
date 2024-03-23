@@ -1,15 +1,17 @@
 package simpleRpc
 
+import "strings"
+
 type SerializerType byte
 
 const (
 	Json SerializerType = iota
 )
 
-type Method byte
+type kind byte
 
 const (
-	Request Method = iota
+	Request kind = iota
 	Response
 )
 
@@ -33,7 +35,8 @@ type Message struct {
 	Version    int            // 协议版本号
 	Length     int            // 消息正文长度
 	Serializer SerializerType // 序列化算法
-	method     Method         // 消息类型, 请求 or 响应
+	Kind       kind           // 消息类型, 请求 or 响应
+	method     [16]byte       // 方法
 	Sequence   int            // 消息序号, 四个字节,请求和应答序号一致, 用于支持全双工通讯
 	body       []byte         // 正文数据
 }
@@ -61,6 +64,16 @@ func (m *Message) Body() []byte {
 	return m.body
 }
 
+// Method 消息方法
+func (m *Message) Method() string {
+	return strings.Trim(string(m.method[:]), string([]byte{0}))
+}
+
+// SetMethod 设置方法名
+func (m *Message) SetMethod(name string) {
+	_ = copy(m.method[:], []byte(name)[:16])
+}
+
 // NewEmpty 创建一个空的消息
 func NewEmpty() *Message {
 	return &Message{}
@@ -76,13 +89,13 @@ func NewResponse(data []byte) *Message {
 	return NewMessage(data, Response)
 }
 
-func NewMessage(data []byte, method Method) *Message {
+func NewMessage(data []byte, method kind) *Message {
 	return &Message{
 		magic:      Magic(),
 		Version:    Version(),
 		Length:     len(data),
 		Serializer: Json,
-		method:     method,
+		Kind:       method,
 		Sequence:   1,
 		body:       data,
 	}

@@ -38,7 +38,8 @@ func (d *Decoder) parserFrame(byteBuf *codec.ByteBuf) (message *Message, err err
 	message.Version = byteBuf.ReadInt()
 	message.Length = byteBuf.ReadInt()
 	message.Serializer = SerializerType(byteBuf.ReadByte())
-	message.method = Method(byteBuf.ReadByte())
+	message.Kind = kind(byteBuf.ReadByte())
+	message.method = *(*[16]byte)(byteBuf.ReadBytes(16))
 	message.Sequence = byteBuf.ReadInt()
 	message.SetBody(byteBuf.ReadBytes(message.Length))
 	return message, nil

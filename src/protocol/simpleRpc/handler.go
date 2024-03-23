@@ -13,7 +13,7 @@ type Handle struct {
 }
 
 func (h Handle) Input(context *event.HandleContext, reader *bufio.Reader) (*Message, bool) {
-	if message, err := h.decoder.Decoder(reader); err == nil {
+	if message, err := h.decoder.Decoder(reader); err != nil {
 		logrus.Error(err)
 		_ = context.Session().Close()
 		return nil, false
