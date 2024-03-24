@@ -145,7 +145,7 @@ func (p *Session) submitOutput(context *HandleContext) {
 	if p.pipeLine == nil || context == nil {
 		return
 	}
-	if p.outputStack >= 2 {
+	if p.outputStack > 3 {
 		logrus.Errorln("Outbound processor call overflow")
 		return
 	}

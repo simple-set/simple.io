@@ -1,103 +1,97 @@
 package simpleHttp
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
+	"fmt"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"strconv"
 )
 
-type ResponseEncode struct {
-	response *Response
-}
+type ResponseEncode struct{}
 
-func (r *ResponseEncode) Codec() error {
-	if err := r.line(); err != nil {
-		return err
+func (r *ResponseEncode) Encode(response *Response) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprintln("Error encoding request, ", e))
+		}
+	}()
+
+	if response == nil {
+		return errors.New("response cannot be nil")
 	}
-	if err := r.header(); err != nil {
-		return err
+	if response.bufWriter == nil {
+		buffer := bytes.NewBuffer(make([]byte, 0))
+		response.bufWriter = codec.NewWriteByteBuf(bufio.NewWriter(buffer))
 	}
-	if err := r.body(); err != nil {
-		return err
-	}
+
+	r.line(response)
+	r.header(response)
+	r.body(response)
+	response.bufWriter.Flush()
 	return nil
 }
 
-func (r *ResponseEncode) line() error {
-	if _, err := r.response.bufWriter.WriteString(r.response.Proto + " "); err != nil {
-		return nil
-	}
-	if _, err := r.response.bufWriter.WriteString(strconv.Itoa(r.response.statusCode) + " "); err != nil {
-		return err
-	}
-	if _, err := r.response.bufWriter.WriteString(r.response.statusText); err != nil {
-		return err
-	}
-	if _, err := r.response.bufWriter.Write(crlf); err != nil {
-		return err
-	}
-	return nil
+func (r *ResponseEncode) line(response *Response) {
+	response.bufWriter.WriteString(response.Proto + " ")
+	response.bufWriter.WriteString(strconv.Itoa(response.statusCode) + " ")
+	response.bufWriter.WriteString(response.statusText)
+	response.bufWriter.WriteBytes(crlf)
 }
 
-func (r *ResponseEncode) header() error {
-	if r.response.Server != "" {
-		err := writeHeader(r.response.bufWriter, "Server", r.response.Server)
-		if err != nil {
-			return err
+func (r *ResponseEncode) header(response *Response) {
+	buffer := response.bufWriter.WriteBuffer()
+
+	if response.Server != "" {
+		if err := writeHeader(buffer, "Server", response.Server); err != nil {
+			panic(err)
 		}
 	}
-	if r.response.contentLength > 0 {
-		err := writeHeader(r.response.bufWriter, "Content-Length", strconv.FormatInt(r.response.contentLength, 10))
-		if err != nil {
-			return err
+	if response.contentLength > 0 {
+		if err := writeHeader(buffer, "Content-Length", strconv.FormatInt(response.contentLength, 10)); err != nil {
+			panic(err)
 		}
 	}
 
-	if r.response.Header == nil {
-		return nil
-	}
-	for name, values := range r.response.Header {
-		if values == nil || len(values) == 0 {
-			continue
-		}
-		for i := 0; i < len(values); i++ {
-			if name == "Cookie" {
-				if err := r.cookie(); err != nil {
-					return err
-				}
+	if response.Header != nil {
+		for name, values := range response.Header {
+			if values == nil || len(values) == 0 {
 				continue
 			}
-			err := writeHeader(r.response.bufWriter, name, values[i])
-			if err != nil {
-				return err
+			for i := 0; i < len(values); i++ {
+				if name == "Cookie" {
+					r.cookie(response)
+					continue
+				}
+				if err := writeHeader(buffer, name, values[i]); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
-	if _, err := r.response.bufWriter.Write(crlf); err != nil {
-		return err
-	}
-	return nil
+	response.bufWriter.WriteBytes(crlf)
 }
 
 // 编码cookie
-func (r *ResponseEncode) cookie() error {
-	cookies := r.response.Cookies()
-	for i := 0; i < len(cookies); i++ {
-		if err := writeHeader(r.response.bufWriter, "Set-Cookie", cookies[i].String()); err != nil {
-			return err
+func (r *ResponseEncode) cookie(response *Response) {
+	cookies := response.Cookies()
+	if cookies == nil {
+		return
+	}
+	for _, cookie := range cookies[:] {
+		if err := writeHeader(response.bufWriter.WriteBuffer(), "Set-Cookie", cookie.String()); err != nil {
+			panic(err)
 		}
 	}
-	return nil
 }
 
-func (r *ResponseEncode) body() error {
-	if r.response.contentLength <= 0 {
-		return nil
+func (r *ResponseEncode) body(response *Response) {
+	if response.body != nil && response.body.size != response.contentLength {
+		panic("Body length error")
 	}
-	if _, err := r.response.bufWriter.ReadFrom(r.response.body); err != nil {
-		return err
-	}
-	return nil
 }
 
-func NewResponseEncoded(response *Response) *ResponseEncode {
-	return &ResponseEncode{response: response}
+func NewResponseEncoded() *ResponseEncode {
+	return &ResponseEncode{}
 }

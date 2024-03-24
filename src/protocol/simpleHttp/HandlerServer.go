@@ -2,51 +2,62 @@ package simpleHttp
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
 
-type ServerHandler struct{}
+type ServerHandler struct {
+	requestDecoder  *RequestDecoder
+	responseEncoder *ResponseEncode
+}
 
-func (s ServerHandler) Input(context *event.HandleContext, reader *bufio.Reader) (any, bool) {
-	request := NewRequestReader(reader)
-	if err := NewRequestDecoder(request).Decoder(); err != nil {
+func (s *ServerHandler) Input(context *event.HandleContext, reader *bufio.Reader) (any, bool) {
+	if request, err := s.requestDecoder.Decoder(reader); err != nil {
 		logrus.Errorln("Decoding HTTP protocol error, ", err)
 		_ = context.Session().Close()
 		return nil, false
+	} else {
+		return request, true
 	}
-
-	request.Response = NewReplyResponse(request)
-	return request, true
 }
 
-func (s ServerHandler) Output(context *event.HandleContext, data any) (any, bool) {
-	var response *Response
-	if value, ok := data.(*Request); ok && value.Response != nil {
-		response = value.Response
-	} else if value, ok := data.(*Response); ok {
-		response = value
-	}
-
-	if response == nil {
-		logrus.Warnln("HTTP encoder execution failed with no available response")
-		_ = context.Session().Close()
-		return nil, false
-	}
-	if response.Header.Get("Date") == "" {
+func (s *ServerHandler) Output(context *event.HandleContext, response *Response) (any, bool) {
+	if response != nil && response.Header.Get("Date") == "" {
 		response.Header.Add("Date", time.Now().Format(http.TimeFormat))
 	}
 
-	response.bufWriter = context.Session().Sock().Writer
-	if err := NewResponseEncoded(response).Codec(); err != nil {
-		logrus.Errorln("HTTP encoder execution failed, ", err)
+	if err := s.responseEncoder.Encode(response); err != nil {
+		logrus.Errorln("Encoding response exception, ", err)
+		_ = context.Session().Close()
+		return nil, false
 	}
-	context.Session().Flush()
+	if err := s.response(context, response); err != nil {
+		logrus.Errorln("Return response exception, ", err)
+		_ = context.Session().Close()
+	}
 	return nil, false
 }
 
+func (s *ServerHandler) response(context *event.HandleContext, response *Response) error {
+	var buffer any = response.bufWriter.WriteBuffer()
+	if value, ok := buffer.(*bytes.Buffer); ok {
+		if _, err := context.Session().WriteSocket(value); err != nil {
+			return err
+		}
+		if response.body != nil {
+			if _, err := context.Session().WriteSocket(response.body); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return errors.New("the bufWriter type of the response is incorrect and cannot be read")
+}
+
 func NewServerHandler() *ServerHandler {
-	return &ServerHandler{}
+	return &ServerHandler{requestDecoder: NewRequestDecoder(), responseEncoder: NewResponseEncoded()}
 }

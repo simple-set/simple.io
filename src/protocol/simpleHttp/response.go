@@ -3,6 +3,7 @@ package simpleHttp
 import (
 	"bufio"
 	"fmt"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
@@ -19,7 +20,7 @@ type Response struct {
 	contentLength int64
 	Server        string
 	request       *Request
-	bufWriter     *bufio.Writer
+	bufWriter     *codec.ByteBuf
 	bufReader     *bufio.Reader
 }
 
@@ -85,12 +86,13 @@ func (r *Response) WriteString(msg string) (int, error) {
 }
 
 func (r *Response) Write(p []byte) (int, error) {
-	if r.body == nil {
-		r.body = NewBody(make([]byte, 0))
-	}
-	size, err := r.body.Write(p)
-	r.contentLength = int64(r.body.Len())
-	return size, err
+	//if r.body == nil {
+	//	r.body = NewBody(make([]byte, 0))
+	//}
+	//size, err := r.body.Write(p)
+	//r.contentLength = int64(r.body.Len())
+	//return size, err
+	return 0, nil
 }
 
 func NewResponse() *Response {

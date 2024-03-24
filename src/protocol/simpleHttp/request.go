@@ -1,7 +1,7 @@
 package simpleHttp
 
 import (
-	"bufio"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
@@ -9,10 +9,10 @@ import (
 // Request http请求体
 type Request struct {
 	http.Request
-	Body      *Body
-	Response  *Response
-	bufWriter *bufio.Writer
-	bufReader *bufio.Reader
+	body       *Body
+	Response   *Response
+	readBuff   *codec.ByteBuf
+	writerBuff *codec.ByteBuf
 }
 
 func (r *Request) AddHeader(name, value string) {
@@ -43,6 +43,10 @@ func DefaultRequest() *Request {
 	return request
 }
 
-func NewRequestReader(bufReader *bufio.Reader) *Request {
-	return &Request{bufReader: bufReader}
+//func NewRequestReader(bufReader *bufio.Reader) *Request {
+//	return &Request{bufReader: bufReader}
+//}
+
+func NewRequest(readBuff *codec.ByteBuf) *Request {
+	return &Request{readBuff: readBuff}
 }

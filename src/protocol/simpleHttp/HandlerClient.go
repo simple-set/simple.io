@@ -19,13 +19,13 @@ func (c ClientHandler) Input(context *event.HandleContext, reader *bufio.Reader)
 }
 
 func (c ClientHandler) Output(context *event.HandleContext, request *Request) (any, bool) {
-	request.bufWriter = context.Session().Sock().Writer
-	if err := NewRequestEncode(request).Encoder(); err != nil {
-		logrus.Errorln(err)
-		_ = context.Session().Close()
-		return nil, false
-	}
-	context.Session().Flush()
+	//request.bufWriter = context.Session().Sock().Writer
+	//if err := NewRequestEncode(request).Encoder(); err != nil {
+	//	logrus.Errorln(err)
+	//	_ = context.Session().Close()
+	//	return nil, false
+	//}
+	//context.Session().Flush()
 	return request, true
 }
 

@@ -26,18 +26,20 @@ func (h *HttpServerDemo) Start() {
 }
 
 func (h *HttpServerDemo) Input(context *event.HandleContext, request *simpleHttp.Request) (any, bool) {
-	logrus.Println("path="+request.URL.RequestURI(), ", method="+request.Method, ", status=", request.Response.StatusCode())
-
+	request.Response = simpleHttp.NewReplyResponse(request)
 	request.Response.AddCookie("sessionId", context.Session().Id())
-	h.dispatch(request)
-	context.Session().Write(request)
+
+	h.dispatch(request, request.Response)
+	context.Session().Write(request.Response)
+
+	logrus.Println("path="+request.URL.RequestURI(), ", method="+request.Method, ", status=", request.Response.StatusCode())
 	return request, true
 }
 
-func (h *HttpServerDemo) dispatch(request *simpleHttp.Request) {
+func (h *HttpServerDemo) dispatch(request *simpleHttp.Request, response *simpleHttp.Response) {
 	for path := range h.mapping {
 		if strings.HasPrefix(request.URL.Path, path) {
-			h.mapping[path](request, request.Response)
+			h.mapping[path](request, response)
 			return
 		}
 	}
@@ -55,9 +57,11 @@ func (h *HttpServerDemo) AddController(path string, controller Controller) {
 
 func NewHttpServerDemo(addr string) {
 	httpServerDemo := &HttpServerDemo{addr: addr}
-	httpServerDemo.AddController("/index", func(request *simpleHttp.Request, response *simpleHttp.Response) {
-		_, _ = response.Write([]byte("hello "))
-		_, _ = response.Write([]byte("world"))
-	})
+	httpServerDemo.AddController("/index", indexController)
 	httpServerDemo.Start()
+}
+
+func indexController(_ *simpleHttp.Request, response *simpleHttp.Response) {
+	_, _ = response.Write([]byte("hello "))
+	_, _ = response.Write([]byte("world"))
 }
