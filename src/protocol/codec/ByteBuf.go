@@ -100,3 +100,7 @@ func NewReadByteBuf(buffer *bufio.Reader) *ByteBuf {
 func NewWriteByteBuf(writeBuffer *bufio.Writer) *ByteBuf {
 	return &ByteBuf{writeBuffer: writeBuffer}
 }
+
+func NewReadWriteByteBuf(buffer *bufio.Reader, writeBuffer *bufio.Writer) *ByteBuf {
+	return &ByteBuf{readBuffer: buffer, writeBuffer: writeBuffer}
+}

@@ -48,8 +48,8 @@ func (r *ResponseEncode) header(response *Response) {
 			panic(err)
 		}
 	}
-	if response.contentLength > 0 {
-		if err := writeHeader(buffer, "Content-Length", strconv.FormatInt(response.contentLength, 10)); err != nil {
+	if response.Body().Size() > 0 {
+		if err := writeHeader(buffer, "Content-Length", strconv.FormatInt(response.Body().Size(), 10)); err != nil {
 			panic(err)
 		}
 	}
@@ -86,10 +86,8 @@ func (r *ResponseEncode) cookie(response *Response) {
 	}
 }
 
-func (r *ResponseEncode) body(response *Response) {
-	if response.body != nil && response.body.size != response.contentLength {
-		panic("Body length error")
-	}
+func (r *ResponseEncode) body(_ *Response) {
+	// TODO
 }
 
 func NewResponseEncoded() *ResponseEncode {

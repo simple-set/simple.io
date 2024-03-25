@@ -111,7 +111,7 @@ func (r *ResponseDecode) contentLength() error {
 
 func (r *ResponseDecode) body() error {
 	//if r.response.contentLength <= 0 {
-	//	r.response.body = NewBody([]byte{})
+	//	r.response.body = NewReadBody([]byte{})
 	//	return nil
 	//}
 	//
@@ -123,7 +123,7 @@ func (r *ResponseDecode) body() error {
 	//if int64(readLength) != r.response.contentLength {
 	//	return errors.New("failed to read request Body")
 	//}
-	//r.response.body = NewBody(body)
+	//r.response.body = NewReadBody(body)
 	return nil
 }
 

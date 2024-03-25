@@ -126,7 +126,7 @@ func (r *RequestDecoder) contentLength(request *Request) {
 // 解码请求体
 func (r *RequestDecoder) body(request *Request) {
 	if request.ContentLength > 0 {
-		request.body = NewBody(request.ContentLength, request.readBuff)
+		request.body = NewReadBody(request.ContentLength, request.readBuff)
 	}
 }
 

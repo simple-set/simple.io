@@ -45,7 +45,7 @@ func (h *HttpServerDemo) dispatch(request *simpleHttp.Request, response *simpleH
 	}
 
 	request.Response.SetStatusCode(404)
-	_, _ = request.Response.Write([]byte("404 not found"))
+	_, _ = response.Body().WriteString("404 not found")
 }
 
 func (h *HttpServerDemo) AddController(path string, controller Controller) {
@@ -62,6 +62,6 @@ func NewHttpServerDemo(addr string) {
 }
 
 func indexController(_ *simpleHttp.Request, response *simpleHttp.Response) {
-	_, _ = response.Write([]byte("hello "))
-	_, _ = response.Write([]byte("world"))
+	_, _ = response.Body().WriteString("hello ")
+	_, _ = response.Body().WriteString("world ")
 }

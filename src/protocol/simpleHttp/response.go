@@ -2,6 +2,7 @@ package simpleHttp
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
@@ -25,6 +26,10 @@ type Response struct {
 }
 
 func (r *Response) Body() *Body {
+	if r.body == nil {
+		buffer := bytes.NewBuffer(make([]byte, 0))
+		r.body = NewReaderWriteBody(codec.NewReadWriteByteBuf(bufio.NewReader(buffer), bufio.NewWriter(buffer)))
+	}
 	return r.body
 }
 
@@ -79,20 +84,6 @@ func (r *Response) cookie(name string) (*http.Cookie, error) {
 		return c, nil
 	}
 	return nil, http.ErrNoCookie
-}
-
-func (r *Response) WriteString(msg string) (int, error) {
-	return r.Write([]byte(msg))
-}
-
-func (r *Response) Write(p []byte) (int, error) {
-	//if r.body == nil {
-	//	r.body = NewBody(make([]byte, 0))
-	//}
-	//size, err := r.body.Write(p)
-	//r.contentLength = int64(r.body.Len())
-	//return size, err
-	return 0, nil
 }
 
 func NewResponse() *Response {
