@@ -19,7 +19,26 @@ func (s *SimpleHttpClient) Input(context *event.HandleContext, response *simpleH
 	return response, true
 }
 
-func NewSimpleHttpClient() *SimpleHttpClient { return &SimpleHttpClient{} }
+func (s *SimpleHttpClient) makeRequest(url string) *simpleHttp.Request {
+	return nil
+}
+
+func (s *SimpleHttpClient) connect(addr string) error {
+	bootstrap := event.NewBootstrap()
+	bootstrap.TcpClient(addr)
+	bootstrap.AddHandler(simpleHttp.NewClientHandler())
+	bootstrap.AddHandler(s)
+	_, err := bootstrap.Connect()
+	return err
+}
+
+func (s *SimpleHttpClient) get(url string) (*simpleHttp.Response, error) {
+	if err := s.connect(url); err != nil {
+		return nil, err
+	}
+	s.wg.Wait()
+	return s.response, nil
+}
 
 func (s *SimpleHttpClient) Connect() *simpleHttp.Response {
 	bootstrap := event.NewBootstrap()
@@ -43,4 +62,8 @@ func (s *SimpleHttpClient) Connect() *simpleHttp.Response {
 	session.Write(request)
 	s.wg.Wait()
 	return s.response
+}
+
+func NewSimpleHttpClient() *SimpleHttpClient {
+	return &SimpleHttpClient{}
 }
