@@ -11,8 +11,8 @@ type Request struct {
 	http.Request
 	body       *Body
 	Response   *Response
-	readBuff   *codec.ByteBuf
-	writerBuff *codec.ByteBuf
+	buffReadr  *codec.ByteBuf
+	buffWriter *codec.ByteBuf
 }
 
 func (r *Request) Body() *Body {
@@ -48,5 +48,5 @@ func DefaultRequest() *Request {
 }
 
 func NewRequest(readBuff *codec.ByteBuf) *Request {
-	return &Request{readBuff: readBuff}
+	return &Request{buffReadr: readBuff}
 }

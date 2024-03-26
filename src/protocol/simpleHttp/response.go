@@ -22,7 +22,7 @@ type Response struct {
 	Server        string
 	request       *Request
 	bufWriter     *codec.ByteBuf
-	bufReader     *bufio.Reader
+	bufReader     *codec.ByteBuf
 }
 
 func (r *Response) Body() *Body {
@@ -93,7 +93,7 @@ func NewResponse() *Response {
 		Build()
 }
 
-func NewResponseReader(bufReader *bufio.Reader) *Response {
+func NewResponseReader(bufReader *codec.ByteBuf) *Response {
 	return &Response{bufReader: bufReader}
 }
 

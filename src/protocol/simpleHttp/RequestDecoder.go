@@ -38,7 +38,7 @@ func (r *RequestDecoder) Decoder(reader *bufio.Reader) (request *Request, err er
 
 // 解码请求行
 func (r *RequestDecoder) line(request *Request) {
-	line := request.readBuff.ReadLine()
+	line := request.buffReadr.ReadLine()
 	method, rest, ok1 := strings.Cut(line, " ")
 	requestURI, proto, ok2 := strings.Cut(rest, " ")
 	if ok1 && ok2 {
@@ -64,7 +64,7 @@ func (r *RequestDecoder) header(request *Request) {
 	header := make(http.Header, 4)
 
 	for {
-		line := request.readBuff.ReadLine()
+		line := request.buffReadr.ReadLine()
 		if len(line) == 0 {
 			break
 		}
@@ -126,7 +126,7 @@ func (r *RequestDecoder) contentLength(request *Request) {
 // 解码请求体
 func (r *RequestDecoder) body(request *Request) {
 	if request.ContentLength > 0 {
-		request.body = NewReadBody(request.ContentLength, request.readBuff)
+		request.body = NewReadBody(request.ContentLength, request.buffReadr)
 	}
 }
 
