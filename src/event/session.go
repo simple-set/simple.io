@@ -1,6 +1,7 @@
 package event
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"github.com/simple-set/simple.io/src/collect"
 	"github.com/simple-set/simple.io/src/socket"
@@ -105,6 +106,8 @@ func (p *Session) WriteSocket(data any) (n int, err error) {
 		n, err = p.sock.Write(value)
 	} else if value, ok := data.(io.Reader); ok {
 		_, err = p.sock.ReadFrom(value)
+	} else {
+		return 0, errors.New("unknown data type")
 	}
 
 	if err != nil {

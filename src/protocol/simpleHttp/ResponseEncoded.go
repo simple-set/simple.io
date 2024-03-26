@@ -23,9 +23,17 @@ func (r *ResponseEncode) Encode(response *Response) (err error) {
 	}
 	if response.bufWriter == nil {
 		buffer := bytes.NewBuffer(make([]byte, 0))
-		response.bufWriter = codec.NewWriteByteBuf(bufio.NewWriter(buffer))
+		response.bufWriter = codec.NewReadWriteByteBuf(bufio.NewReader(buffer), bufio.NewWriter(buffer))
 	}
+	return r.encodeFrame(response)
+}
 
+func (r *ResponseEncode) encodeFrame(response *Response) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprintln("Error encoding request, ", e))
+		}
+	}()
 	r.line(response)
 	r.header(response)
 	r.body(response)

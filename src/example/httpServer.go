@@ -4,7 +4,9 @@ import (
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/simple-set/simple.io/src/protocol/simpleHttp"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"strings"
+	"time"
 )
 
 type Controller func(request *simpleHttp.Request, response *simpleHttp.Response)
@@ -45,7 +47,7 @@ func (h *HttpServerDemo) dispatch(request *simpleHttp.Request, response *simpleH
 	}
 
 	request.Response.SetStatusCode(404)
-	_, _ = response.Body().WriteString("404 not found")
+	_, _ = response.Body().WriteString("404 not found, " + time.Now().Format(http.TimeFormat))
 }
 
 func (h *HttpServerDemo) AddController(path string, controller Controller) {

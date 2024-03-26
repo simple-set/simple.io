@@ -5,25 +5,24 @@ import (
 )
 
 type ByteBuf struct {
-	readBuffer  *bufio.Reader
-	writeBuffer *bufio.Writer
+	*bufio.Reader
+	*bufio.Writer
 }
 
 func (b *ByteBuf) ReadBuffer() *bufio.Reader {
-	return b.readBuffer
+	return b.Reader
 }
 
 func (b *ByteBuf) ReadInt() int {
-	readInt, err := ReadInt(b.readBuffer)
+	readInt, err := ReadInt(b.Reader)
 	if err != nil {
 		panic(err)
 	}
 	return readInt
 }
 
-//goland:noinspection GoStandardMethods
-func (b *ByteBuf) ReadByte() byte {
-	readByte, err := b.readBuffer.ReadByte()
+func (b *ByteBuf) ReadBytea() byte {
+	readByte, err := b.Reader.ReadByte()
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +30,7 @@ func (b *ByteBuf) ReadByte() byte {
 }
 
 func (b *ByteBuf) ReadBytes(size int) []byte {
-	bytes, err := ReadBytes(b.readBuffer, size)
+	bytes, err := ReadBytes(b.Reader, size)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +40,7 @@ func (b *ByteBuf) ReadBytes(size int) []byte {
 func (b *ByteBuf) ReadLine() string {
 	var readData []byte
 	for {
-		line, more, err := b.readBuffer.ReadLine()
+		line, more, err := b.Reader.ReadLine()
 		if err != nil {
 			panic(err)
 		}
@@ -57,50 +56,49 @@ func (b *ByteBuf) ReadLine() string {
 }
 
 func (b *ByteBuf) WriteBuffer() *bufio.Writer {
-	return b.writeBuffer
+	return b.Writer
 }
 
 func (b *ByteBuf) WriteInt(data int) {
-	if n, err := b.writeBuffer.Write(IntToByteBigEndian(data)); n != 4 || err != nil {
+	if n, err := b.Write(IntToByteBigEndian(data)); n != 4 || err != nil {
 		panic(err)
 	}
 }
 
-//goland:noinspection GoStandardMethods
-func (b *ByteBuf) WriteByte(data byte) {
-	if err := b.writeBuffer.WriteByte(data); err != nil {
+func (b *ByteBuf) WriteBytea(data byte) {
+	if err := b.Writer.WriteByte(data); err != nil {
 		panic(err)
 	}
 }
 
 func (b *ByteBuf) WriteBytes(data []byte) {
-	if n, err := b.writeBuffer.Write(data); err != nil || n != len(data) {
+	if n, err := b.Writer.Write(data); err != nil || n != len(data) {
 		panic(err)
 	}
 }
 
 func (b *ByteBuf) WriteString(data string) {
-	if _, err := b.writeBuffer.WriteString(data); err != nil {
+	if _, err := b.Writer.WriteString(data); err != nil {
 		panic(err)
 	}
 }
 
 func (b *ByteBuf) Flush() {
-	if b.writeBuffer != nil {
-		if err := b.writeBuffer.Flush(); err != nil {
+	if b.Writer != nil {
+		if err := b.Writer.Flush(); err != nil {
 			panic(err)
 		}
 	}
 }
 
-func NewReadByteBuf(buffer *bufio.Reader) *ByteBuf {
-	return &ByteBuf{readBuffer: buffer}
+func NewReadByteBuf(reader *bufio.Reader) *ByteBuf {
+	return &ByteBuf{Reader: reader}
 }
 
 func NewWriteByteBuf(writeBuffer *bufio.Writer) *ByteBuf {
-	return &ByteBuf{writeBuffer: writeBuffer}
+	return &ByteBuf{Writer: writeBuffer}
 }
 
-func NewReadWriteByteBuf(buffer *bufio.Reader, writeBuffer *bufio.Writer) *ByteBuf {
-	return &ByteBuf{readBuffer: buffer, writeBuffer: writeBuffer}
+func NewReadWriteByteBuf(reader *bufio.Reader, writer *bufio.Writer) *ByteBuf {
+	return &ByteBuf{Reader: reader, Writer: writer}
 }

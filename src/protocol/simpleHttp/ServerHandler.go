@@ -2,8 +2,6 @@ package simpleHttp
 
 import (
 	"bufio"
-	"bytes"
-	"errors"
 	"github.com/simple-set/simple.io/src/event"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -43,19 +41,15 @@ func (s *ServerHandler) Output(context *event.HandleContext, response *Response)
 }
 
 func (s *ServerHandler) response(context *event.HandleContext, response *Response) error {
-	var buffer any = response.bufWriter.WriteBuffer()
-	if value, ok := buffer.(*bytes.Buffer); ok {
-		if _, err := context.Session().WriteSocket(value); err != nil {
+	if _, err := context.Session().WriteSocket(response.bufWriter); err != nil {
+		return err
+	}
+	if response.body != nil {
+		if _, err := context.Session().WriteSocket(response.body); err != nil {
 			return err
 		}
-		if response.body != nil {
-			if _, err := context.Session().WriteSocket(response.body); err != nil {
-				return err
-			}
-		}
-		return nil
 	}
-	return errors.New("the bufWriter type of the response is incorrect and cannot be read")
+	return nil
 }
 
 func NewServerHandler() *ServerHandler {
