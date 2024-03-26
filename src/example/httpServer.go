@@ -63,7 +63,16 @@ func NewHttpServerDemo(addr string) {
 	httpServerDemo.Start()
 }
 
-func indexController(_ *simpleHttp.Request, response *simpleHttp.Response) {
+func indexController(request *simpleHttp.Request, response *simpleHttp.Response) {
+	if request.Body() != nil && request.Body().Size() > 0 {
+		bytes := make([]byte, request.Body().Size())
+		if _, err := request.Body().Read(bytes); err != nil {
+			return
+		}
+		if _, err := response.Body().Write(bytes); err == nil {
+			return
+		}
+	}
 	_, _ = response.Body().WriteString("hello ")
 	_, _ = response.Body().WriteString("world ")
 }

@@ -85,7 +85,7 @@ func (r *RequestEncode) cookie(request *Request) {
 
 // 编码请求体
 func (r *RequestEncode) body(request *Request) {
-	if request.Body != nil && request.body.size != request.ContentLength {
+	if request.Body() != nil && request.body.size != request.ContentLength {
 		panic("Body length error")
 	}
 }

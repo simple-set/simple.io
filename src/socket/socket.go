@@ -20,8 +20,8 @@ func NewSocket(conn net.Conn, server Server, client Client) *Socket {
 		conn:   conn,
 		server: server,
 		client: client,
-		Reader: bufio.NewReader(conn),
-		Writer: bufio.NewWriter(conn),
+		Reader: bufio.NewReaderSize(conn, 1024),
+		Writer: bufio.NewWriterSize(conn, 1024),
 	}
 }
 

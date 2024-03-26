@@ -23,7 +23,9 @@ func (r *ResponseEncode) Encode(response *Response) (err error) {
 	}
 	if response.bufWriter == nil {
 		buffer := bytes.NewBuffer(make([]byte, 0))
-		response.bufWriter = codec.NewReadWriteByteBuf(bufio.NewReader(buffer), bufio.NewWriter(buffer))
+		reader := bufio.NewReaderSize(buffer, 32)
+		writer := bufio.NewWriterSize(buffer, 32)
+		response.bufWriter = codec.NewReadWriteByteBuf(reader, writer)
 	}
 	return r.encodeFrame(response)
 }

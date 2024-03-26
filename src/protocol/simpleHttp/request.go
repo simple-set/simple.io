@@ -15,6 +15,10 @@ type Request struct {
 	writerBuff *codec.ByteBuf
 }
 
+func (r *Request) Body() *Body {
+	return r.body
+}
+
 func (r *Request) AddHeader(name, value string) {
 	if r.Header == nil {
 		r.Header = make(http.Header, 4)
@@ -42,10 +46,6 @@ func DefaultRequest() *Request {
 	request.ProtoMajor, request.ProtoMinor, _ = http.ParseHTTPVersion(request.Proto)
 	return request
 }
-
-//func NewRequestReader(bufReader *bufio.Reader) *Request {
-//	return &Request{bufReader: bufReader}
-//}
 
 func NewRequest(readBuff *codec.ByteBuf) *Request {
 	return &Request{readBuff: readBuff}
