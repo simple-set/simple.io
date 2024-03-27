@@ -13,10 +13,6 @@ type Bootstrap struct {
 	pipeLine *PipeLine
 }
 
-func NewBootstrap() *Bootstrap {
-	return &Bootstrap{pipeLine: NewPipeLine()}
-}
-
 // TcpServer 设置tcp服务器的地址和端口, 如 localhost:8080、127.0.0.1:8080、0.0.0.0:8080、:8080
 func (p *Bootstrap) TcpServer(addr string) *Bootstrap {
 	p.mutex.Lock()
@@ -51,6 +47,9 @@ func (p *Bootstrap) TcpClient(addr string) *Bootstrap {
 }
 
 func (p *Bootstrap) AddHandler(handler any) *Bootstrap {
+	if p.pipeLine == nil {
+		p.pipeLine = NewPipeLine()
+	}
 	if err := p.pipeLine.AddHandler(handler); err != nil {
 		logrus.Panic(err)
 	}
@@ -63,4 +62,8 @@ func (p *Bootstrap) Connect() (*Session, error) {
 
 func (p *Bootstrap) Bind() *Session {
 	return NewEventLoop(p.pipeLine).Bind(p.server)
+}
+
+func NewBootstrap() *Bootstrap {
+	return new(Bootstrap)
 }

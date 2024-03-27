@@ -1,7 +1,10 @@
 package simpleHttp
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"net/textproto"
@@ -11,90 +14,76 @@ import (
 )
 
 // RequestDecoder 请求解码器, 从io缓冲区读取字节流, 并解码为http请求对象, 缓冲区一般为socket连接, 也可以使字节数组等
-type RequestDecoder struct {
-	request *Request
-}
+type RequestDecoder struct{}
 
 // Decoder 解码入口
-func (r *RequestDecoder) Decoder() error {
-	if r.request == nil || r.request.bufReader == nil {
-		return errors.New("the buffer has no data to read")
-	}
+func (r *RequestDecoder) Decoder(reader *bufio.Reader) (request *Request, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprintln("Error decoding request, ", e))
+		}
+	}()
 
-	if err := r.line(); err != nil {
-		return err
+	if reader == nil {
+		return nil, errors.New("the buffer has no data to read")
 	}
-	if err := r.header(); err != nil {
-		return err
-	}
-	if err := r.uri(); err != nil {
-		return err
-	}
-	if err := r.contentLength(); err != nil {
-		return err
-	}
-	if err := r.body(); err != nil {
-		return err
-	}
-	return nil
+	request = NewRequest(codec.NewReadByteBuf(reader))
+	r.line(request)
+	r.header(request)
+	r.uri(request)
+	r.contentLength(request)
+	r.body(request)
+	return request, nil
 }
 
 // 解码请求行
-func (r *RequestDecoder) line() error {
-	line, err := readLine(r.request.bufReader)
-	if err != nil {
-		return err
-	}
-
-	method, rest, ok1 := strings.Cut(string(line), " ")
+func (r *RequestDecoder) line(request *Request) {
+	line := strings.TrimSpace(request.buffReadr.ReadLine())
+	method, rest, ok1 := strings.Cut(line, " ")
 	requestURI, proto, ok2 := strings.Cut(rest, " ")
 	if ok1 && ok2 {
-		r.request.Method = method
-		r.request.RequestURI = requestURI
-		r.request.Proto = proto
+		request.Method = method
+		request.RequestURI = requestURI
+		request.Proto = proto
 	} else {
-		return errors.New("HTTP request line format error, " + string(line))
+		panic(errors.New("HTTP request line format error, " + line))
 	}
 
-	if len(r.request.Method) < 0 || !ValidMethod(r.request.Method) || !ValidPath(r.request.RequestURI) {
-		return errors.New("invalid request " + r.request.Method + " " + r.request.RequestURI)
+	if len(request.Method) < 0 || !ValidMethod(request.Method) || !ValidPath(request.RequestURI) {
+		panic(errors.New("invalid request " + request.Method + " " + request.RequestURI))
 	}
+
 	var ok bool
-	if r.request.ProtoMajor, r.request.ProtoMinor, ok = http.ParseHTTPVersion(r.request.Proto); !ok {
-		return errors.New("malformed HTTP version " + r.request.Proto)
+	if request.ProtoMajor, request.ProtoMinor, ok = http.ParseHTTPVersion(request.Proto); !ok {
+		panic(errors.New("malformed HTTP version " + request.Proto))
 	}
-	return nil
 }
 
 // 解码请求头
-func (r *RequestDecoder) header() error {
+func (r *RequestDecoder) header(request *Request) {
 	header := make(http.Header, 4)
 
 	for {
-		line, err := readLine(r.request.bufReader)
-		if err != nil {
-			return err
-		}
+		line := strings.TrimSpace(request.buffReadr.ReadLine())
 		if len(line) == 0 {
 			break
 		}
 		if line[0] == ' ' || line[0] == '\t' {
-			return badRequestError("malformed MIME header initial line: " + string(line))
-
+			panic(badRequestError("malformed MIME header initial line: " + line))
 		}
 
-		name, value, found := strings.Cut(string(line), ":")
+		name, value, found := strings.Cut(line, ":")
 		name = strings.TrimSpace(name)
 		value = strings.TrimSpace(value)
 
 		if name == "" || value == "" || !found {
-			return badRequestError("Hearer format error： " + string(line))
+			panic(badRequestError("Hearer format error： " + line))
 		}
 		if !httpguts.ValidHeaderFieldName(name) {
-			return badRequestError("invalid header name: " + value)
+			panic(badRequestError("invalid header name: " + value))
 		}
 		if !httpguts.ValidHeaderFieldValue(value) {
-			return badRequestError("invalid header value: " + value)
+			panic(badRequestError("invalid header value: " + value))
 		}
 
 		if header.Get(name) == "" {
@@ -106,60 +95,42 @@ func (r *RequestDecoder) header() error {
 
 	// 调整缓存头
 	PragmaCacheControl(header)
-	r.request.Header = header
-	r.request.Host = header.Get("Host")
+	request.Header = header
+	request.Host = header.Get("Host")
 	// 解析表单数据
-	_ = r.request.ParseForm()
-	return nil
+	_ = request.ParseForm()
 }
 
 // 解码请求URL
-func (r *RequestDecoder) uri() error {
-	uri, err := url.ParseRequestURI("http://" + r.request.Host + r.request.RequestURI)
-	if err != nil {
-		return err
+func (r *RequestDecoder) uri(request *Request) {
+	if uri, err := url.ParseRequestURI("http://" + request.Host + request.RequestURI); err != nil {
+		panic(err)
+	} else {
+		request.URL = uri
 	}
-	r.request.URL = uri
-	return nil
 }
 
 // 解码请求体长度
-func (r *RequestDecoder) contentLength() error {
-	contentLength := textproto.TrimString(r.request.Header.Get("Content-Length"))
+func (r *RequestDecoder) contentLength(request *Request) {
+	contentLength := textproto.TrimString(request.Header.Get("Content-Length"))
 	if contentLength == "" {
-		r.request.ContentLength = 0
-		return nil
-	}
-
-	if n, err := strconv.ParseUint(contentLength, 10, 63); err != nil {
-		r.request.ContentLength = -1
-		return errors.New("bad Content-Length: " + contentLength)
+		request.ContentLength = 0
+	} else if n, err := strconv.ParseUint(contentLength, 10, 63); err != nil {
+		request.ContentLength = -1
+		panic(errors.New("bad Content-Length: " + contentLength))
 	} else {
-		r.request.ContentLength = int64(n)
+		request.ContentLength = int64(n)
 	}
-	return nil
 }
 
 // 解码请求体
-func (r *RequestDecoder) body() error {
-	if r.request.ContentLength <= 0 {
-		r.request.Body = NewBody([]byte{})
-		return nil
+func (r *RequestDecoder) body(request *Request) {
+	if request.ContentLength > 0 {
+		request.body = NewReadBody(request.ContentLength, request.buffReadr)
 	}
-
-	body := make([]byte, r.request.ContentLength)
-	readLength, err := r.request.bufReader.Read(body)
-	if err != nil {
-		return err
-	}
-	if int64(readLength) != r.request.ContentLength {
-		return errors.New("failed to read request Body")
-	}
-	r.request.Body = NewBody(body)
-	return nil
 }
 
 // NewRequestDecoder 构造函数
-func NewRequestDecoder(request *Request) *RequestDecoder {
-	return &RequestDecoder{request: request}
+func NewRequestDecoder() *RequestDecoder {
+	return &RequestDecoder{}
 }

@@ -29,7 +29,7 @@ func TestLoop_Connect(t *testing.T) {
 	mockClient.EXPECT().Connect().Return(mockSock, nil).AnyTimes()
 
 	eventLoop := NewEventLoop(nil)
-	session := eventLoop.Connect(mockClient)
+	session, _ := eventLoop.Connect(mockClient)
 	session.Wait()
 
 	if session.client != mockClient {

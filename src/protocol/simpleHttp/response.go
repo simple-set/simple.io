@@ -1,8 +1,8 @@
 package simpleHttp
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
@@ -19,8 +19,12 @@ type Response struct {
 	contentLength int64
 	Server        string
 	request       *Request
-	bufWriter     *bufio.Writer
-	bufReader     *bufio.Reader
+	bufWriter     *codec.ByteBuf
+	bufReader     *codec.ByteBuf
+}
+
+func (r *Response) SetBody(body *Body) {
+	r.body = body
 }
 
 func (r *Response) Body() *Body {
@@ -80,19 +84,6 @@ func (r *Response) cookie(name string) (*http.Cookie, error) {
 	return nil, http.ErrNoCookie
 }
 
-func (r *Response) WriteString(msg string) (int, error) {
-	return r.Write([]byte(msg))
-}
-
-func (r *Response) Write(p []byte) (int, error) {
-	if r.body == nil {
-		r.body = NewBody(make([]byte, 0))
-	}
-	size, err := r.body.Write(p)
-	r.contentLength = int64(r.body.Len())
-	return size, err
-}
-
 func NewResponse() *Response {
 	return NewResponseBuild().
 		Server(version.Name + "/" + version.Version).
@@ -100,7 +91,7 @@ func NewResponse() *Response {
 		Build()
 }
 
-func NewResponseReader(bufReader *bufio.Reader) *Response {
+func NewResponseReader(bufReader *codec.ByteBuf) *Response {
 	return &Response{bufReader: bufReader}
 }
 

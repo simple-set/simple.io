@@ -1,17 +1,26 @@
 package simpleHttp
 
 import (
-	"bufio"
+	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
 	"net/http"
 )
 
+// Request http请求体
 type Request struct {
 	http.Request
-	Body      *Body
-	Response  *Response
-	bufWriter *bufio.Writer
-	bufReader *bufio.Reader
+	body       *Body
+	Response   *Response
+	buffReadr  *codec.ByteBuf
+	buffWriter *codec.ByteBuf
+}
+
+func (r *Request) Body() *Body {
+	return r.body
+}
+
+func (r *Request) SetBody(body *Body) {
+	r.body = body
 }
 
 func (r *Request) AddHeader(name, value string) {
@@ -36,12 +45,17 @@ func (r *Request) AddCookieEntity(cookie *http.Cookie) {
 	r.Request.AddCookie(cookie)
 }
 
-func DefaultRequest() *Request {
-	request := NewRequestBuild().Proto("HTTP/1.1").Agent(version.Name + "/" + version.Version).Build()
+func NewRequestUrl(url string) *Request {
+	request := NewRequestBuild().
+		Proto("HTTP/1.1").
+		Method("GET").
+		Agent(version.Name + "/" + version.Version).
+		Uri(url).
+		Build()
 	request.ProtoMajor, request.ProtoMinor, _ = http.ParseHTTPVersion(request.Proto)
 	return request
 }
 
-func NewRequestReader(bufReader *bufio.Reader) *Request {
-	return &Request{bufReader: bufReader}
+func NewRequest(readBuff *codec.ByteBuf) *Request {
+	return &Request{buffReadr: readBuff}
 }

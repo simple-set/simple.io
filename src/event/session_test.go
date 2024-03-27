@@ -83,13 +83,13 @@ func TestSession_submitInput(t *testing.T) {
 	_ = pipeLine.AddHandler(handle)
 	_ = pipeLine.AddHandler(handle)
 
-	session := ClientSession(nil, nil, pipeLine)
+	session := NewClientSession(nil, nil, pipeLine)
 	session.sock = socket.NewSocket(mockConn, nil, nil)
 	session.state = Active
 	session.InputContext().exchange = "data"
 	session.submitInput(session.InputContext())
 
-	if handle.n != 4 || session.InputContext().exchange != nil {
+	if handle.n != 2 || session.InputContext().exchange != nil {
 		t.Fatal("session.submitInput()")
 	}
 }
@@ -104,7 +104,7 @@ func TestSession_submitOutput(t *testing.T) {
 	_ = pipeLine.AddHandler(handler)
 	_ = pipeLine.AddHandler(handler)
 
-	session := ClientSession(nil, nil, pipeLine)
+	session := NewClientSession(nil, nil, pipeLine)
 	session.sock = socket.NewSocket(mockConn, nil, nil)
 	session.state = Disconnect
 	context := session.InputContext()

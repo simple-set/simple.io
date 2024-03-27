@@ -18,7 +18,7 @@ func (p *Loop) Connect(client socket.Client) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientSession := ClientSession(sock, client, p.pipeLine)
+	clientSession := NewClientSession(sock, client, p.pipeLine)
 	logrus.Debugf("Create a new clientSession, Id: %s, addr: %s", clientSession.Id(), sock.RemoteAddr())
 	clientSession.submitInput(clientSession.InputContext())
 	clientSession.state = Active
@@ -27,7 +27,7 @@ func (p *Loop) Connect(client socket.Client) (*Session, error) {
 }
 
 func (p *Loop) Bind(server socket.Server) *Session {
-	listenSession := ListenSession(server)
+	listenSession := newListenSession(server)
 	go p.accept(listenSession)
 	return listenSession
 }
@@ -36,7 +36,7 @@ func (p *Loop) accept(listenSession *Session) {
 	for {
 		if sock, err := listenSession.server.Accept(); err == nil {
 			go func(sock *socket.Socket) {
-				serverSession := ServerSession(sock, listenSession.server, p.pipeLine)
+				serverSession := NewServerSession(sock, listenSession.server, p.pipeLine)
 				logrus.Debugf("Create a new serverSession, Id: %s, addr: %s", serverSession.Id(), sock.RemoteAddr())
 
 				serverSession.submitInput(serverSession.InputContext())

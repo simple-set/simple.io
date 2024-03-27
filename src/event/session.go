@@ -1,19 +1,21 @@
 package event
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"github.com/simple-set/simple.io/src/collect"
 	"github.com/simple-set/simple.io/src/socket"
 	"github.com/sirupsen/logrus"
+	"io"
 	"sync"
 )
 
 type SessionType int
 
 const (
-	ClientType SessionType = iota
-	ServerType
-	ListenType
+	ClientSession SessionType = iota
+	ServerSession
+	ListenSession
 )
 
 type SessionState int
@@ -37,37 +39,6 @@ type Session struct {
 	outputStack   int
 	handles       *collect.LinkedNode[any]
 	wg            sync.WaitGroup
-}
-
-func newSession() *Session {
-	session := &Session{id: uuid.New().String(), state: Accept}
-	session.wg.Add(1)
-	return session
-}
-
-func ListenSession(server socket.Server) *Session {
-	session := newSession()
-	session.server = server
-	session.sessionType = ListenType
-	return session
-}
-
-func ServerSession(sock *socket.Socket, server socket.Server, pipeline *PipeLine) *Session {
-	session := newSession()
-	session.sock = sock
-	session.server = server
-	session.pipeLine = pipeline
-	session.sessionType = ServerType
-	return session
-}
-
-func ClientSession(sock *socket.Socket, client socket.Client, pipeline *PipeLine) *Session {
-	session := newSession()
-	session.sock = sock
-	session.client = client
-	session.pipeLine = pipeline
-	session.sessionType = ClientType
-	return session
 }
 
 func (p *Session) Id() string {
@@ -128,6 +99,25 @@ func (p *Session) Write(data any) {
 	p.submitOutput(p.outputContext)
 }
 
+func (p *Session) WriteSocket(data any) (n int, err error) {
+	if value, ok := data.(string); ok {
+		n, err = p.sock.WriteString(value)
+	} else if value, ok := data.([]byte); ok {
+		n, err = p.sock.Write(value)
+	} else if value, ok := data.(io.Reader); ok {
+		_, err = p.sock.ReadFrom(value)
+	} else {
+		return 0, errors.New("unknown data type")
+	}
+
+	if err != nil {
+		_ = p.Close()
+	} else {
+		p.Flush()
+	}
+	return
+}
+
 func (p *Session) Flush() {
 	if p.sock == nil {
 		return
@@ -144,12 +134,13 @@ func (p *Session) WriteAndFlush(data any) {
 }
 
 func (p *Session) submitInput(context *HandleContext) {
-	if p.pipeLine == nil || context == nil {
-		return
-	}
 	defer func() {
 		context.exchange = nil
 	}()
+
+	if p.pipeLine == nil || context == nil {
+		return
+	}
 	p.pipeLine.inbound(context)
 }
 
@@ -157,7 +148,7 @@ func (p *Session) submitOutput(context *HandleContext) {
 	if p.pipeLine == nil || context == nil {
 		return
 	}
-	if p.outputStack >= 2 {
+	if p.outputStack > 3 {
 		logrus.Errorln("Outbound processor call overflow")
 		return
 	}
@@ -168,27 +159,42 @@ func (p *Session) submitOutput(context *HandleContext) {
 		context.exchange = nil
 	}()
 
-	result, state := p.pipeLine.outbound(context)
-	if !state || result == nil {
-		return
-	}
-
-	if value, ok := result.(string); ok {
-		if _, err := p.sock.WriteString(value); err != nil {
-			_ = p.Close()
-		}
-		p.Flush()
-		return
-	}
-	if value, ok := result.([]byte); ok {
-		if _, err := p.sock.Write(value); err != nil {
-			_ = p.Close()
-		}
-		p.Flush()
-		return
+	if result, state := p.pipeLine.outbound(context); state && result != nil {
+		_, _ = p.WriteSocket(result)
 	}
 }
 
 func (p *Session) Wait() {
 	p.wg.Wait()
+}
+
+func newSession() *Session {
+	session := &Session{id: uuid.New().String(), state: Accept}
+	session.wg.Add(1)
+	return session
+}
+
+func newListenSession(server socket.Server) *Session {
+	session := newSession()
+	session.server = server
+	session.sessionType = ListenSession
+	return session
+}
+
+func NewServerSession(sock *socket.Socket, server socket.Server, pipeline *PipeLine) *Session {
+	session := newSession()
+	session.sock = sock
+	session.server = server
+	session.pipeLine = pipeline
+	session.sessionType = ServerSession
+	return session
+}
+
+func NewClientSession(sock *socket.Socket, client socket.Client, pipeline *PipeLine) *Session {
+	session := newSession()
+	session.sock = sock
+	session.client = client
+	session.pipeLine = pipeline
+	session.sessionType = ClientSession
+	return session
 }
