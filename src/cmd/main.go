@@ -2,14 +2,16 @@ package main
 
 import (
 	"github.com/simple-set/simple.io/src/example"
-	"time"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	//server := example.NewRpcServer(":8080")
-	//server.Start()
+	example.NewHttpServerDemo(":8000")
 
-	rpcClient := example.NewRpcClient("localhost:8080")
-	rpcClient.Call("hello", []byte("hi"))
-	time.Sleep(1000)
+	response, err := example.NewSimpleHttpClient().Get("http://localhost:8000/index?name=x&age=1")
+	if err != nil {
+		logrus.Errorln(err)
+	} else {
+		logrus.Infoln(response)
+	}
 }

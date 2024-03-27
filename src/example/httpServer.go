@@ -47,7 +47,9 @@ func (h *HttpServerDemo) dispatch(request *simpleHttp.Request, response *simpleH
 	}
 
 	request.Response.SetStatusCode(404)
-	_, _ = response.Body().WriteString("404 not found, " + time.Now().Format(http.TimeFormat))
+	body := simpleHttp.MakeReaderWriteBody()
+	_, _ = body.WriteString("404 not found, " + time.Now().Format(http.TimeFormat))
+	response.SetBody(body)
 }
 
 func (h *HttpServerDemo) AddController(path string, controller Controller) {
@@ -73,6 +75,8 @@ func indexController(request *simpleHttp.Request, response *simpleHttp.Response)
 			return
 		}
 	}
-	_, _ = response.Body().WriteString("hello ")
-	_, _ = response.Body().WriteString("world ")
+
+	body := simpleHttp.MakeReaderWriteBody()
+	_, _ = body.WriteString("hello world")
+	response.SetBody(body)
 }

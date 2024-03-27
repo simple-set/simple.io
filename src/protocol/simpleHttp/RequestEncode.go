@@ -37,6 +37,7 @@ func (r *RequestEncode) encodeFrame(request *Request) (err error) {
 	r.line(request)
 	r.header(request)
 	r.body(request)
+	_ = request.buffWriter.Writer.Flush()
 	return nil
 }
 
@@ -44,7 +45,7 @@ func (r *RequestEncode) encodeFrame(request *Request) (err error) {
 func (r *RequestEncode) line(request *Request) {
 	request.buffWriter.WriteString(request.Method + " ")
 	request.buffWriter.WriteString(request.RequestURI + " ")
-	request.buffWriter.WriteString(request.Proto + " ")
+	request.buffWriter.WriteString(request.Proto)
 	request.buffWriter.WriteBytes(crlf)
 }
 
@@ -54,12 +55,7 @@ func (r *RequestEncode) header(request *Request) {
 	if err := writeHeader(writeBuffer, "Host", request.Host); err != nil {
 		panic(err)
 	}
-	if request.body != nil && request.body.size > 0 {
-		if err := writeHeader(writeBuffer, "Content-Length", strconv.FormatInt(request.body.size, 10)); err != nil {
-			panic(err)
-		}
-	}
-	if request.Header == nil || len(request.Header) == 0 {
+	if request.Header != nil || len(request.Header) > 0 {
 		for name, values := range request.Header {
 			if values == nil || len(values) == 0 {
 				continue
@@ -73,6 +69,12 @@ func (r *RequestEncode) header(request *Request) {
 					panic(err)
 				}
 			}
+		}
+	}
+
+	if request.body != nil && request.body.size > 0 {
+		if err := writeHeader(writeBuffer, "Content-Length", strconv.FormatInt(request.body.size, 10)); err != nil {
+			panic(err)
 		}
 	}
 	request.buffWriter.WriteBytes(crlf)

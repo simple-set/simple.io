@@ -58,8 +58,8 @@ func (r *ResponseEncode) header(response *Response) {
 			panic(err)
 		}
 	}
-	if response.Body().Size() > 0 {
-		if err := writeHeader(buffer, "Content-Length", strconv.FormatInt(response.Body().Size(), 10)); err != nil {
+	if response.body != nil && response.body.size > 0 {
+		if err := writeHeader(buffer, "Content-Length", strconv.FormatInt(response.body.size, 10)); err != nil {
 			panic(err)
 		}
 	}

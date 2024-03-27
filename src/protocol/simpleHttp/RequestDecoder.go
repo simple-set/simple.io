@@ -38,7 +38,7 @@ func (r *RequestDecoder) Decoder(reader *bufio.Reader) (request *Request, err er
 
 // 解码请求行
 func (r *RequestDecoder) line(request *Request) {
-	line := request.buffReadr.ReadLine()
+	line := strings.TrimSpace(request.buffReadr.ReadLine())
 	method, rest, ok1 := strings.Cut(line, " ")
 	requestURI, proto, ok2 := strings.Cut(rest, " ")
 	if ok1 && ok2 {
@@ -46,7 +46,7 @@ func (r *RequestDecoder) line(request *Request) {
 		request.RequestURI = requestURI
 		request.Proto = proto
 	} else {
-		panic(errors.New("HTTP request line format error, " + string(line)))
+		panic(errors.New("HTTP request line format error, " + line))
 	}
 
 	if len(request.Method) < 0 || !ValidMethod(request.Method) || !ValidPath(request.RequestURI) {
@@ -64,7 +64,7 @@ func (r *RequestDecoder) header(request *Request) {
 	header := make(http.Header, 4)
 
 	for {
-		line := request.buffReadr.ReadLine()
+		line := strings.TrimSpace(request.buffReadr.ReadLine())
 		if len(line) == 0 {
 			break
 		}

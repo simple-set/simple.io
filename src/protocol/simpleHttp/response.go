@@ -1,8 +1,6 @@
 package simpleHttp
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"github.com/simple-set/simple.io/src/protocol/codec"
 	"github.com/simple-set/simple.io/src/version"
@@ -25,11 +23,11 @@ type Response struct {
 	bufReader     *codec.ByteBuf
 }
 
+func (r *Response) SetBody(body *Body) {
+	r.body = body
+}
+
 func (r *Response) Body() *Body {
-	if r.body == nil {
-		buffer := bytes.NewBuffer(make([]byte, 0))
-		r.body = NewReaderWriteBody(codec.NewReadWriteByteBuf(bufio.NewReader(buffer), bufio.NewWriter(buffer)))
-	}
 	return r.body
 }
 

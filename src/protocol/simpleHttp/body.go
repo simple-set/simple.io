@@ -1,13 +1,14 @@
 package simpleHttp
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"github.com/simple-set/simple.io/src/protocol/codec"
 	"io"
 )
 
 type Body struct {
-	r, w int64
 	size int64
 	buff *codec.ByteBuf
 }
@@ -80,4 +81,9 @@ func NewReaderWriteBody(buff *codec.ByteBuf) *Body {
 		return &Body{buff: buff}
 	}
 	return nil
+}
+
+func MakeReaderWriteBody() *Body {
+	buffer := bytes.NewBuffer(make([]byte, 0))
+	return NewReaderWriteBody(codec.NewReadWriteByteBuf(bufio.NewReader(buffer), bufio.NewWriter(buffer)))
 }

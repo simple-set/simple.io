@@ -19,6 +19,10 @@ func (r *Request) Body() *Body {
 	return r.body
 }
 
+func (r *Request) SetBody(body *Body) {
+	r.body = body
+}
+
 func (r *Request) AddHeader(name, value string) {
 	if r.Header == nil {
 		r.Header = make(http.Header, 4)
@@ -41,8 +45,13 @@ func (r *Request) AddCookieEntity(cookie *http.Cookie) {
 	r.Request.AddCookie(cookie)
 }
 
-func DefaultRequest() *Request {
-	request := NewRequestBuild().Proto("HTTP/1.1").Agent(version.Name + "/" + version.Version).Build()
+func NewRequestUrl(url string) *Request {
+	request := NewRequestBuild().
+		Proto("HTTP/1.1").
+		Method("GET").
+		Agent(version.Name + "/" + version.Version).
+		Uri(url).
+		Build()
 	request.ProtoMajor, request.ProtoMinor, _ = http.ParseHTTPVersion(request.Proto)
 	return request
 }
