@@ -81,7 +81,7 @@ func (b *Body) ReadBytes() ([]byte, error) {
 }
 
 func (b *Body) ReadString() (string, error) {
-	if readBytes, err := b.ReadBytes(); err != nil {
+	if readBytes, err := b.ReadBytes(); err == nil {
 		return string(readBytes), nil
 	} else {
 		return "", err
